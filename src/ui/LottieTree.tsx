@@ -12,7 +12,8 @@ const SOURCES: Record<TreeStage, unknown> = { seed, sprout, plant, tree };
 /** El teal de marca original de los assets; lo mapeamos al acento del tema. */
 const BRAND: [number, number, number] = [0.2, 0.8, 0.8];
 const BRAND2: [number, number, number] = [0.15, 0.64, 0.8];
-const RED: [number, number, number] = [1, 0, 0]; // detalle (semilla/fruto) → acento profundo
+const RED: [number, number, number] = [1, 0, 0]; // detalle de color → acento profundo
+const BLACK: [number, number, number] = [0, 0, 0]; // líneas neutras → "ink" del tema
 
 function near(a: number[], b: number[], t = 0.06) {
   return Math.abs(a[0] - b[0]) < t && Math.abs(a[1] - b[1]) < t && Math.abs(a[2] - b[2]) < t;
@@ -20,50 +21,43 @@ function near(a: number[], b: number[], t = 0.06) {
 
 /** rgb() / #hex → [r,g,b] normalizado 0..1. */
 export function cssToRgb(css: string): [number, number, number] {
-  const m = css.match(/(\d+(\.\d+)?)/g);
-  if (css.startsWith("#")) {
-    const h = css.slice(1);
+  const s = css.trim();
+  if (s.startsWith("#")) {
+    const h = s.slice(1);
     const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
     return [parseInt(n.slice(0, 2), 16) / 255, parseInt(n.slice(2, 4), 16) / 255, parseInt(n.slice(4, 6), 16) / 255];
   }
+  const m = s.match(/(\d+(\.\d+)?)/g);
   if (m && m.length >= 3) return [+m[0] / 255, +m[1] / 255, +m[2] / 255];
   return [0.2, 0.8, 0.8];
 }
 
 /**
- * Recolorea una animación Lottie al color del tema:
- * - la línea teal de marca (y negros de contorno) → acento
- * - color secundario → acento más profundo
- * Devuelve una copia; no muta el original importado.
+ * Recolorea una animación Lottie respetando la lógica original del icono:
+ * - línea de color (teal de marca) → acento del tema
+ * - color secundario / detalle rojo → acento profundo
+ * - líneas neutras (negro) → "ink" del tema (negro en temas claros, claro en oscuros,
+ *   para que sigan siendo visibles sobre cualquier fondo)
+ * - rellenos crema/blanco (maceta/tierra) → se dejan como el original
  */
 function recolor(
   data: unknown,
   accent: [number, number, number],
-  accentDeep: [number, number, number]
+  accentDeep: [number, number, number],
+  ink: [number, number, number]
 ): unknown {
   const clone = JSON.parse(JSON.stringify(data));
+  const apply = (k: number[]) => {
+    if (k.length < 3 || typeof k[0] !== "number") return;
+    if (near(k, BRAND)) [k[0], k[1], k[2]] = accent;
+    else if (near(k, BRAND2) || near(k, RED)) [k[0], k[1], k[2]] = accentDeep;
+    else if (near(k, BLACK)) [k[0], k[1], k[2]] = ink;
+  };
   const walk = (o: any) => {
-    if (Array.isArray(o)) {
-      o.forEach(walk);
-      return;
-    }
+    if (Array.isArray(o)) return o.forEach(walk);
     if (o && typeof o === "object") {
-      // Relleno / trazo sólido
-      if ((o.ty === "st" || o.ty === "fl") && o.c && Array.isArray(o.c.k)) {
-        const k = o.c.k;
-        if (k.length >= 3 && typeof k[0] === "number") {
-          if (near(k, BRAND) || near(k, [0, 0, 0])) [k[0], k[1], k[2]] = accent;
-          else if (near(k, BRAND2) || near(k, RED)) [k[0], k[1], k[2]] = accentDeep;
-        }
-      }
-      // Efecto de control de color
-      if (o.ty === 2 && o.v && Array.isArray(o.v.k)) {
-        const k = o.v.k;
-        if (k.length >= 3 && typeof k[0] === "number") {
-          if (near(k, BRAND) || near(k, [0, 0, 0])) [k[0], k[1], k[2]] = accent;
-          else if (near(k, BRAND2)) [k[0], k[1], k[2]] = accentDeep;
-        }
-      }
+      if ((o.ty === "st" || o.ty === "fl") && o.c && Array.isArray(o.c.k)) apply(o.c.k);
+      if (o.ty === 2 && o.v && Array.isArray(o.v.k)) apply(o.v.k);
       Object.values(o).forEach(walk);
     }
   };
@@ -76,34 +70,29 @@ interface Props {
   size?: number;
   loop?: boolean;
   autoplay?: boolean;
-  /** color acento (hex o rgb). Si se omite, lee --accent del tema. */
-  accent?: string;
-  accentDeep?: string;
-  frozen?: boolean; // muestra el último frame sin animar
+  accent: string;
+  accentDeep: string;
+  ink: string;
+  /** Cambiar este valor vuelve a reproducir la animación desde el inicio (p. ej. al marcar un hábito). */
+  replayKey?: string | number;
 }
 
 export function LottieTree({
   stage,
   size = 120,
-  loop = true,
+  loop = false,
   autoplay = true,
   accent,
   accentDeep,
-  frozen = false,
+  ink,
+  replayKey,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const anim = useRef<AnimationItem | null>(null);
 
-  const colors = useMemo(() => {
-    const root = getComputedStyle(document.documentElement);
-    const a = cssToRgb(accent ?? root.getPropertyValue("--accent").trim());
-    const d = cssToRgb(accentDeep ?? root.getPropertyValue("--accent-deep").trim());
-    return { a, d };
-  }, [accent, accentDeep, stage]);
-
   const data = useMemo(
-    () => recolor(SOURCES[stage], colors.a, colors.d),
-    [stage, colors]
+    () => recolor(SOURCES[stage], cssToRgb(accent), cssToRgb(accentDeep), cssToRgb(ink)),
+    [stage, accent, accentDeep, ink]
   );
 
   useEffect(() => {
@@ -112,15 +101,25 @@ export function LottieTree({
       container: box.current,
       renderer: "svg",
       loop,
-      autoplay: autoplay && !frozen,
+      autoplay,
       animationData: data as object,
     });
     anim.current = item;
-    if (frozen) {
-      item.addEventListener("DOMLoaded", () => item.goToAndStop(item.totalFrames - 1, true));
+    return () => {
+      item.destroy();
+      anim.current = null;
+    };
+  }, [data, loop, autoplay]);
+
+  // Reproducir de nuevo al cambiar replayKey (sin recargar la animación).
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
     }
-    return () => item.destroy();
-  }, [data, loop, autoplay, frozen]);
+    anim.current?.goToAndPlay(0, true);
+  }, [replayKey]);
 
   return <div ref={box} style={{ width: size, height: size }} aria-hidden />;
 }

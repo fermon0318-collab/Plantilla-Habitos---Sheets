@@ -11,12 +11,24 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Habit, Check } from "../domain/types";
-import { dateKey, toDoneSet, dailyRate, monthSummary, LEVEL_META } from "../domain/logic";
+import {
+  dateKey,
+  toDoneSet,
+  dailyRate,
+  monthSummary,
+  treeStage,
+  monthlyDailyCounts,
+  LEVEL_META,
+} from "../domain/logic";
 import { toggleCheck } from "../domain/actions";
 import { Ring } from "../ui/Ring";
 import { Checkbox } from "../ui/Checkbox";
 import { BottomSheet } from "../ui/Sheet";
+import { LottieTree } from "../ui/LottieTree";
+import { ActivityChart } from "../ui/ActivityChart";
 import { fmtMonthYear, fmtLongDate, pct, cap } from "../ui/format";
+import { useUI } from "../ui/uiContext";
+import { THEMES } from "../hooks/useTheme";
 import { IconChevron } from "../ui/icons";
 
 interface Props {
@@ -28,12 +40,15 @@ interface Props {
 const WD = ["L", "M", "X", "J", "V", "S", "D"];
 
 export function Month({ habits, checks, now }: Props) {
+  const { theme } = useUI();
+  const t = THEMES.find((x) => x.id === theme)!;
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Date | null>(null);
   const month = addMonths(now, offset);
   const done = toDoneSet(checks);
   const summary = monthSummary(habits, checks, month, now);
   const lvl = LEVEL_META[summary.level];
+  const dailyCounts = monthlyDailyCounts(checks, month);
 
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const lead = (getDay(startOfMonth(month)) + 6) % 7; // lunes = 0
@@ -66,7 +81,14 @@ export function Month({ habits, checks, now }: Props) {
           </div>
         </Ring>
         <div className="grow stack" style={{ gap: 3, alignItems: "flex-end", textAlign: "right" }}>
-          <div style={{ fontSize: 34 }}>{lvl.tree}</div>
+          <LottieTree
+            key={`${theme}-${offset}-${treeStage(summary.monthlyRate)}`}
+            stage={treeStage(summary.monthlyRate)}
+            size={64}
+            accent={t.accent}
+            accentDeep={t.accentDeep}
+            ink={t.ink}
+          />
           <div style={{ fontWeight: 800 }}>
             Nivel {summary.level} · {lvl.name}
           </div>
@@ -137,6 +159,16 @@ export function Month({ habits, checks, now }: Props) {
           </span>
         </div>
       </div>
+
+      {/* Flujo de actividad diaria */}
+      <div className="card mt16" style={{ padding: "16px 14px 10px" }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>
+          Flujo de actividad diaria
+        </div>
+        <ActivityChart values={dailyCounts} />
+      </div>
+
+      <div style={{ height: 12 }} />
 
       <BottomSheet open={!!selected} onClose={() => setSelected(null)}>
         {selected && (

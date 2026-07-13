@@ -8,17 +8,21 @@ import {
   toDoneSet,
   dailyRate,
   currentStreak,
+  globalStreak,
   isScheduled,
   isPerfectDay,
+  treeStage,
   LEVEL_META,
   progressToNextLevel,
 } from "../domain/logic";
 import { Ring } from "../ui/Ring";
 import { Checkbox } from "../ui/Checkbox";
 import { Confetti } from "../ui/Confetti";
+import { LottieTree } from "../ui/LottieTree";
 import { toggleCheck, addTask, toggleTask, deleteTask, haptic } from "../domain/actions";
 import { fmtLongDate, fmtTime, pct, scheduleLabel } from "../ui/format";
 import { useUI } from "../ui/uiContext";
+import { THEMES } from "../hooks/useTheme";
 import { IconBolt, IconFlame, IconPlus, IconClose, IconCheck, IconChevron } from "../ui/icons";
 
 interface Props {
@@ -30,16 +34,20 @@ interface Props {
 
 export function Today({ habits, checks, tasks, now }: Props) {
   const ui = useUI();
+  const t = THEMES.find((x) => x.id === ui.theme)!;
   const done = toDoneSet(checks);
   const today = dateKey(now);
   const summary = monthSummary(habits, checks, now, now);
   const daily = dailyRate(habits, done, now);
   const lvl = LEVEL_META[summary.level];
   const nextPct = progressToNextLevel(summary.monthlyRate);
+  const streak = globalStreak(checks, now);
 
   const scheduled = habits.filter((h) => isScheduled(h, now));
   const unscheduled = habits.filter((h) => !isScheduled(h, now));
   const completedToday = scheduled.filter((h) => done.has(`${h.id}|${today}`)).length;
+  // Cuenta TODAS las marcas de hoy (programadas o no) para reproducir la animación del árbol.
+  const doneTodayCount = habits.filter((h) => done.has(`${h.id}|${today}`)).length;
   const perfect = isPerfectDay(habits, done, now);
 
   // Confetti al pasar a día perfecto (solo en la transición, no al montar).
@@ -59,14 +67,26 @@ export function Today({ habits, checks, tasks, now }: Props) {
     <div className="screen">
       {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
 
-      <div className="row between">
-        <div>
+      <div className="row between" style={{ alignItems: "flex-start" }}>
+        <div className="grow">
           <div className="eyebrow">Hábitos personales</div>
           <h1 className="h1">{fmtLongDate(now)}</h1>
         </div>
-        <button className="chip" onClick={ui.openCommands} aria-label="Comandos">
-          <IconBolt size={15} className="streak" />
-        </button>
+        <div className="row gap8" style={{ flex: "none" }}>
+          <motion.div
+            className="streak-pill"
+            animate={streak > 0 ? { scale: [1, 1.12, 1] } : {}}
+            transition={{ duration: 0.4 }}
+            key={streak}
+            aria-label={`Racha de ${streak} días`}
+          >
+            <IconFlame size={15} />
+            {streak}
+          </motion.div>
+          <button className="chip" onClick={ui.openCommands} aria-label="Comandos" style={{ padding: "6px 10px" }}>
+            <IconBolt size={15} className="streak" />
+          </button>
+        </div>
       </div>
       <div className="row gap8 mt8">
         <div className="chip" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -87,25 +107,30 @@ export function Today({ habits, checks, tasks, now }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Hero: progreso mensual + nivel */}
+      {/* Hero: progreso del día + árbol de nivel */}
       <div className="card mt16" style={{ padding: 20 }}>
         <div className="row gap12 between">
-          <Ring value={summary.monthlyRate} size={120} stroke={11}>
+          <Ring value={daily} size={120} stroke={11}>
             <div>
-              <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>
-                {pct(summary.monthlyRate)}
-              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>{pct(daily)}</div>
               <div className="dim" style={{ fontSize: 11, fontWeight: 600 }}>
-                mensual
+                hoy
               </div>
             </div>
           </Ring>
-          <div className="grow stack" style={{ gap: 6, alignItems: "flex-end", textAlign: "right" }}>
-            <div style={{ fontSize: 40, lineHeight: 1 }}>{lvl.tree}</div>
-            <div style={{ fontWeight: 800, fontSize: 17 }}>
+          <div className="grow stack" style={{ gap: 4, alignItems: "flex-end", textAlign: "right" }}>
+            <LottieTree
+              stage={treeStage(summary.monthlyRate)}
+              size={72}
+              accent={t.accent}
+              accentDeep={t.accentDeep}
+              ink={t.ink}
+              replayKey={doneTodayCount}
+            />
+            <div style={{ fontWeight: 800, fontSize: 16 }}>
               Nivel {summary.level} · {lvl.name}
             </div>
-            <div className="dim" style={{ fontSize: 12.5 }}>
+            <div className="dim" style={{ fontSize: 12 }}>
               {summary.level === 5 ? "¡Completado!" : `Siguiente nivel en ${pct(1 - nextPct)}`}
             </div>
             <div className="bar" style={{ width: 120, marginTop: 4 }}>
@@ -120,7 +145,7 @@ export function Today({ habits, checks, tasks, now }: Props) {
 
         <div className="row between mt16" style={{ paddingTop: 14, borderTop: "1px solid var(--border)" }}>
           <Stat label="Hoy" value={`${completedToday}/${scheduled.length}`} />
-          <Stat label="Cumplimiento" value={pct(daily)} />
+          <Stat label="Mes" value={pct(summary.monthlyRate)} />
           <Stat label="Hábitos" value={String(habits.length)} />
         </div>
       </div>
@@ -177,6 +202,9 @@ export function Today({ habits, checks, tasks, now }: Props) {
 
       {/* Tareas por hacer */}
       <TaskSection tasks={tasks} now={now} />
+
+      {/* Espacio para que el botón flotante nunca tape la última tarea */}
+      <div style={{ height: 88 }} aria-hidden />
 
       <motion.button
         className="fab"

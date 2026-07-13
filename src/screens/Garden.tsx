@@ -52,8 +52,10 @@ export function Garden({ habits, checks, now }: Props) {
             <LottieTree
               stage={current.stage}
               size={170}
+              loop
               accent={t.accent}
               accentDeep={t.accentDeep}
+              ink={t.ink}
             />
           </motion.div>
 
@@ -97,7 +99,7 @@ export function Garden({ habits, checks, now }: Props) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
           {past.map((m, i) => (
-            <GardenPlot key={m.key} m={m} index={i} accent={t.accent} accentDeep={t.accentDeep} />
+            <GardenPlot key={m.key} m={m} index={i} accent={t.accent} accentDeep={t.accentDeep} ink={t.ink} />
           ))}
         </div>
       )}
@@ -110,11 +112,13 @@ function GardenPlot({
   index,
   accent,
   accentDeep,
+  ink,
 }: {
   m: GardenMonth;
   index: number;
   accent: string;
   accentDeep: string;
+  ink: string;
 }) {
   return (
     <motion.div
@@ -131,7 +135,7 @@ function GardenPlot({
     >
       <div style={{ height: 78, display: "grid", placeItems: "center" }}>
         {m.won ? (
-          <LottieTree stage="tree" size={78} loop={false} frozen accent={accent} accentDeep={accentDeep} />
+          <LottieTree stage="tree" size={78} accent={accent} accentDeep={accentDeep} ink={ink} />
         ) : (
           <Trunk size={70} />
         )}

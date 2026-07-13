@@ -1,13 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BottomSheet } from "../ui/Sheet";
-import {
-  copyPreviousMonth,
-  clearMonth,
-  clearHabitMonth,
-  exportData,
-  haptic,
-} from "../domain/actions";
+import { copyPreviousMonth, clearMonth, clearHabitMonth, haptic } from "../domain/actions";
 import { fmtMonthYear, scheduleLabel } from "../ui/format";
 import type { Habit } from "../domain/types";
 import { THEMES, type ThemeId } from "../hooks/useTheme";
@@ -19,7 +13,6 @@ import {
   IconCopy,
   IconUndo,
   IconTrash,
-  IconDownload,
   IconPalette,
   IconCheck,
 } from "../ui/icons";
@@ -46,17 +39,6 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
     } finally {
       setBusy(false);
     }
-  };
-
-  const doExport = async () => {
-    const data = await exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `habitos-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -138,12 +120,6 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
                 run(() => clearMonth(month))
               }
               disabled={busy}
-            />
-            <CmdRow
-              icon={<IconDownload size={19} />}
-              title="Exportar respaldo (JSON)"
-              sub="Descarga todos tus datos"
-              onClick={doExport}
             />
 
             <div className="row between mt16" style={{ marginBottom: 4 }}>

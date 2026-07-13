@@ -300,6 +300,21 @@ select {
   color: var(--gold);
 }
 
+/* ——— Racha estilo Duolingo ——— */
+.streak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 11px;
+  border-radius: 99px;
+  font-weight: 800;
+  font-size: 15px;
+  color: #ff8a3d;
+  background: linear-gradient(180deg, rgba(255, 138, 61, 0.16), rgba(255, 179, 71, 0.1));
+  border: 1px solid rgba(255, 138, 61, 0.32);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ——— Botones ——— */
 .btn {
   display: inline-flex;

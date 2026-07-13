@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { startOfWeek, addDays, addWeeks, isSameDay, format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Habit, Check } from "../domain/types";
-import { dateKey, toDoneSet, weeklyTarget, isScheduled } from "../domain/logic";
+import { dateKey, toDoneSet, weeklyTarget, isScheduled, weekdayRhythm } from "../domain/logic";
 import { toggleCheck } from "../domain/actions";
 import { cap, pct } from "../ui/format";
-import { IconChevron } from "../ui/icons";
+import { IconChevron, IconCheck } from "../ui/icons";
+import { RadarChart } from "../ui/RadarChart";
 
 interface Props {
   habits: Habit[];
@@ -20,11 +21,13 @@ export function Week({ habits, checks, now }: Props) {
   const weekStart = startOfWeek(addWeeks(now, offset), { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const weekDone = habits.reduce(
-    (acc, h) => acc + days.filter((d) => done.has(`${h.id}|${dateKey(d)}`)).length,
-    0
-  );
+  // Cada hábito aporta como máximo su meta (no más), para que no aparezca 6/5.
+  const weekDone = habits.reduce((acc, h) => {
+    const c = days.filter((d) => done.has(`${h.id}|${dateKey(d)}`)).length;
+    return acc + Math.min(c, weeklyTarget(h));
+  }, 0);
   const weekTarget = habits.reduce((a, h) => a + weeklyTarget(h), 0);
+  const rhythm = weekdayRhythm(checks);
 
   return (
     <div className="screen">
@@ -103,6 +106,7 @@ export function Week({ habits, checks, now }: Props) {
           const count = days.filter((d) => done.has(`${h.id}|${dateKey(d)}`)).length;
           const target = weeklyTarget(h);
           const met = count >= target;
+          const shown = Math.min(count, target); // no mostrar 6/5
           return (
             <div key={h.id} className="stack" style={{ gap: 4 }}>
               <div
@@ -121,20 +125,28 @@ export function Week({ habits, checks, now }: Props) {
                   const on = done.has(k);
                   const sched = isScheduled(h, d);
                   return (
-                    <motion.button
-                      key={k}
-                      whileTap={{ scale: 0.85 }}
-                      onClick={() => toggleCheck(h.id, dateKey(d))}
-                      style={{
-                        height: 34,
-                        borderRadius: 10,
-                        background: on ? h.color : "var(--surface-2)",
-                        border: sched
-                          ? `1px solid ${on ? "transparent" : "var(--border-hi)"}`
-                          : `1px dashed ${on ? "transparent" : "var(--border)"}`,
-                        opacity: sched || on ? 1 : 0.35,
-                      }}
-                    />
+                    <div key={k} style={{ display: "grid", placeItems: "center" }}>
+                      <motion.button
+                        whileTap={{ scale: 0.8 }}
+                        onClick={() => toggleCheck(h.id, dateKey(d))}
+                        aria-label={h.name}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: "50%",
+                          display: "grid",
+                          placeItems: "center",
+                          background: on ? h.color : "var(--surface-2)",
+                          border: sched
+                            ? `1.5px solid ${on ? "transparent" : "var(--border-hi)"}`
+                            : `1.5px dashed ${on ? "transparent" : "var(--border)"}`,
+                          opacity: sched || on ? 1 : 0.4,
+                          transition: "background 0.18s var(--ease), border-color 0.18s var(--ease)",
+                        }}
+                      >
+                        {on && <IconCheck size={16} style={{ color: "var(--accent-ink)" }} />}
+                      </motion.button>
+                    </div>
                   );
                 })}
               </div>
@@ -149,13 +161,32 @@ export function Week({ habits, checks, now }: Props) {
                     color: met ? "var(--accent)" : "var(--text-3)",
                   }}
                 >
-                  {count}/{target}
+                  {shown}/{target}
                 </span>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Ritmo semanal */}
+      <div className="card mt24" style={{ padding: "18px 12px 12px" }}>
+        <div className="eyebrow" style={{ paddingLeft: 6, marginBottom: 4 }}>
+          Ritmo semanal
+        </div>
+        {rhythm.some((v) => v > 0) ? (
+          <RadarChart
+            values={rhythm}
+            labels={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
+          />
+        ) : (
+          <div className="dim" style={{ fontSize: 13, textAlign: "center", padding: "24px 0" }}>
+            Marcá hábitos para ver tu ritmo por día.
+          </div>
+        )}
+      </div>
+
+      <div style={{ height: 12 }} />
     </div>
   );
 }

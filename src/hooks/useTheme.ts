@@ -8,12 +8,14 @@ export const THEMES: {
   bg: string;
   accent: string;
   accentDeep: string;
+  /** Color de las líneas "neutras" del icono (negro original en claros, claro en oscuros). */
+  ink: string;
   dark: boolean;
 }[] = [
-  { id: "verde", name: "Bosque", bg: "#0e1013", accent: "#b0ea81", accentDeep: "#7bc95a", dark: true },
-  { id: "rosa", name: "Pétalo", bg: "#fbf3f6", accent: "#f48fb1", accentDeep: "#ec6f9d", dark: false },
-  { id: "lila", name: "Lavanda", bg: "#f7f5fd", accent: "#a78bfa", accentDeep: "#8b6cf0", dark: false },
-  { id: "morado", name: "Nocturno", bg: "#0d0a16", accent: "#a78bfa", accentDeep: "#8b5cf6", dark: true },
+  { id: "verde", name: "Bosque", bg: "#0e1013", accent: "#b0ea81", accentDeep: "#7bc95a", ink: "#eef1f4", dark: true },
+  { id: "rosa", name: "Pétalo", bg: "#fbf3f6", accent: "#f48fb1", accentDeep: "#ec6f9d", ink: "#2a1c24", dark: false },
+  { id: "lila", name: "Lavanda", bg: "#f7f5fd", accent: "#a78bfa", accentDeep: "#8b6cf0", ink: "#221b34", dark: false },
+  { id: "morado", name: "Nocturno", bg: "#0d0a16", accent: "#a78bfa", accentDeep: "#8b5cf6", ink: "#efecf7", dark: true },
 ];
 
 const KEY = "habitos-theme";

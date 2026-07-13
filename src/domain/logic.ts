@@ -282,6 +282,47 @@ export function toDoneSet(checks: Check[]): Set<string> {
   return checkSet(checks);
 }
 
+/**
+ * Racha global estilo Duolingo: días de calendario consecutivos (hasta hoy) en los
+ * que se completó al menos un hábito. Si hoy aún no hay nada, no rompe: cuenta desde ayer.
+ */
+export function globalStreak(checks: Check[], today: Date): number {
+  const activeDays = new Set(checks.filter((c) => c.done).map((c) => c.date));
+  let streak = 0;
+  let cursor = new Date(today);
+  if (!activeDays.has(dateKey(cursor))) cursor = subDays(cursor, 1);
+  for (let i = 0; i < 2000 && activeDays.has(dateKey(cursor)); i++) {
+    streak++;
+    cursor = subDays(cursor, 1);
+  }
+  return streak;
+}
+
+/**
+ * "Ritmo semanal": promedio de hábitos completados por día de la semana, sobre todo
+ * el historial. Índice 0=Dom … 6=Sáb (para el radar que arranca en Dom arriba).
+ */
+export function weekdayRhythm(checks: Check[]): number[] {
+  const sum = new Array(7).fill(0);
+  const daysWith = new Array(7).fill(0);
+  const perDay = new Map<string, number>();
+  for (const c of checks) if (c.done) perDay.set(c.date, (perDay.get(c.date) ?? 0) + 1);
+  for (const [date, n] of perDay) {
+    const wd = getDay(parseISO(date)); // 0=Dom..6=Sáb
+    sum[wd] += n;
+    daysWith[wd] += 1;
+  }
+  return sum.map((s, i) => (daysWith[i] ? s / daysWith[i] : 0));
+}
+
+/** Nº de hábitos completados por cada día del mes (para el gráfico de actividad diaria). */
+export function monthlyDailyCounts(checks: Check[], monthDate: Date): number[] {
+  const days = eachDayOfInterval({ start: startOfMonth(monthDate), end: endOfMonth(monthDate) });
+  const perDay = new Map<string, number>();
+  for (const c of checks) if (c.done) perDay.set(c.date, (perDay.get(c.date) ?? 0) + 1);
+  return days.map((d) => perDay.get(dateKey(d)) ?? 0);
+}
+
 // ——————————————————— JARDÍN ———————————————————
 
 /**
