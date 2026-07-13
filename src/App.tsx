@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "./domain/db";
 import { useNow } from "./hooks/useNow";
+import { useTheme } from "./hooks/useTheme";
 import { Today } from "./screens/Today";
 import { Week } from "./screens/Week";
 import { Month } from "./screens/Month";
@@ -23,6 +24,7 @@ const TABS: { id: Tab; label: string; Icon: typeof IconToday }[] = [
 export function App() {
   const [tab, setTab] = useState<Tab>("hoy");
   const now = useNow();
+  const { theme, setTheme } = useTheme();
 
   const habits = useLiveQuery(
     () => db.habits.orderBy("order").toArray(),
@@ -44,7 +46,7 @@ export function App() {
   }
 
   return (
-    <UIProvider habits={habits!} month={now}>
+    <UIProvider habits={habits!} month={now} theme={theme} setTheme={setTheme}>
     <div className="app">
         <motion.div
           key={tab}
@@ -73,7 +75,13 @@ export function App() {
             {tab === id && (
               <motion.span layoutId="tabdot" className="tab-dot" transition={{ duration: 0.3 }} />
             )}
-            <Icon className="tab-ico" />
+            <motion.span
+              animate={{ scale: tab === id ? 1.15 : 1, y: tab === id ? -2 : 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 18 }}
+              style={{ display: "grid", placeItems: "center" }}
+            >
+              <Icon className="tab-ico" />
+            </motion.span>
             {label}
           </button>
         ))}

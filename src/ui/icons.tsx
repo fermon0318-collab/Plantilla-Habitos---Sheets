@@ -82,3 +82,41 @@ export const IconChevron = ({ size, className, style }: P) => (
     <path d="M9 6l6 6-6 6" />
   </svg>
 );
+export const IconPalette = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-1.5 3.3c.6.7.2 2.7-2.5 2.7z" />
+    <circle cx="7.5" cy="11" r="1" fill="currentColor" stroke="none" />
+    <circle cx="10.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="17.5" cy="11" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
+export const IconTrophy = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+    <path d="M8 5H5a3 3 0 0 0 3 4M16 5h3a3 3 0 0 1-3 4M12 13v3M8 20h8M10 16.5h4V20h-4z" />
+  </svg>
+);
+export const IconCopy = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <rect x="9" y="9" width="12" height="12" rx="2.5" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+export const IconDownload = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+  </svg>
+);
+export const IconUndo = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M4 8h10a6 6 0 0 1 0 12H8" />
+    <path d="M8 4L4 8l4 4" />
+  </svg>
+);
+export const IconSparkles = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6z" />
+    <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8zM5 16l.6 1.7L7.3 18l-1.7.6L5 20.3 4.4 18.6 2.7 18l1.7-.3z" />
+  </svg>
+);

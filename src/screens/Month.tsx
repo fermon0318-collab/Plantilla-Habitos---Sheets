@@ -105,7 +105,7 @@ export function Month({ habits, checks, now }: Props) {
                   color: strong ? "var(--accent-ink)" : today ? "var(--accent)" : "var(--text-2)",
                   background:
                     rate > 0
-                      ? `rgba(176,234,129,${0.14 + rate * 0.82})`
+                      ? `color-mix(in srgb, var(--accent) ${Math.round((0.14 + rate * 0.86) * 100)}%, var(--surface-2))`
                       : "var(--surface-2)",
                   border: today ? "1.5px solid var(--accent)" : "1px solid var(--border)",
                   display: "grid",
@@ -128,7 +128,7 @@ export function Month({ habits, checks, now }: Props) {
                 width: 16,
                 height: 16,
                 borderRadius: 5,
-                background: `rgba(176,234,129,${0.14 + a * 0.82})`,
+                background: `color-mix(in srgb, var(--accent) ${Math.round((0.14 + a * 0.86) * 100)}%, var(--surface-2))`,
               }}
             />
           ))}

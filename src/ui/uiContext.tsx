@@ -2,6 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { HabitEditor } from "../screens/HabitEditor";
 import { Commands } from "../screens/Commands";
 import type { Habit } from "../domain/types";
+import type { ThemeId } from "../hooks/useTheme";
 
 interface UICtx {
   addHabit: () => void;
@@ -19,10 +20,14 @@ export const useUI = () => {
 export function UIProvider({
   habits,
   month,
+  theme,
+  setTheme,
   children,
 }: {
   habits: Habit[];
   month: Date;
+  theme: ThemeId;
+  setTheme: (t: ThemeId) => void;
   children: ReactNode;
 }) {
   const [editorOpen, setEditorOpen] = useState(false);
@@ -50,6 +55,8 @@ export function UIProvider({
         onClose={() => setCommandsOpen(false)}
         month={month}
         habits={habits}
+        theme={theme}
+        setTheme={setTheme}
         onAdd={() => {
           setCommandsOpen(false);
           api.addHabit();

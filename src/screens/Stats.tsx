@@ -11,7 +11,7 @@ import {
   toDoneSet,
 } from "../domain/logic";
 import { fmtMonthYear, pct } from "../ui/format";
-import { IconChevron, IconFlame } from "../ui/icons";
+import { IconChevron, IconFlame, IconTrophy } from "../ui/icons";
 
 interface Props {
   habits: Habit[];
@@ -108,7 +108,11 @@ export function Stats({ habits, checks, now }: Props) {
       {bestStreakStat && bestStreakStat.currentStreak > 0 && (
         <div
           className="card mt16 row gap12"
-          style={{ padding: 16, alignItems: "center", border: "1px solid rgba(255,212,121,0.25)" }}
+          style={{
+            padding: 16,
+            alignItems: "center",
+            border: "1px solid color-mix(in srgb, var(--gold) 25%, transparent)",
+          }}
         >
           <div
             style={{
@@ -117,7 +121,7 @@ export function Stats({ habits, checks, now }: Props) {
               borderRadius: 14,
               display: "grid",
               placeItems: "center",
-              background: "rgba(255,212,121,0.12)",
+              background: "color-mix(in srgb, var(--gold) 12%, transparent)",
             }}
           >
             <IconFlame size={24} className="streak" />
@@ -141,7 +145,10 @@ export function Stats({ habits, checks, now }: Props) {
 
       {/* Logros */}
       <div className="row between mt24" style={{ marginBottom: 12 }}>
-        <h2 className="h2">Logros</h2>
+        <span className="row gap8">
+          <IconTrophy size={19} className="streak" />
+          <h2 className="h2">Logros</h2>
+        </span>
         <span className="dim" style={{ fontSize: 13, fontWeight: 600 }}>
           {unlockedCount}/{medals.length}
         </span>
@@ -161,7 +168,9 @@ export function Stats({ habits, checks, now }: Props) {
               textAlign: "center",
               filter: m.unlocked ? "none" : "grayscale(1)",
               opacity: m.unlocked ? 1 : 0.4,
-              border: m.unlocked ? "1px solid rgba(176,234,129,0.25)" : undefined,
+              border: m.unlocked
+                ? "1px solid color-mix(in srgb, var(--accent) 30%, transparent)"
+                : undefined,
             }}
             title={m.desc}
           >

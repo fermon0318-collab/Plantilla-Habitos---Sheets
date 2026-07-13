@@ -133,16 +133,7 @@ export function Today({ habits, checks, tasks, now }: Props) {
         </span>
       </div>
 
-      <div className="stack" style={{ gap: 10 }}>
-        {scheduled.map((h, i) => (
-          <HabitRow key={h.id} habit={h} index={i} now={now} done={done} today={today} />
-        ))}
-        {scheduled.length === 0 && (
-          <div className="dim" style={{ fontSize: 13, padding: "4px 2px" }}>
-            Nada programado para hoy. 🎉
-          </div>
-        )}
-      </div>
+      <TodayList habits={scheduled} now={now} done={done} today={today} />
 
       {/* No programados hoy */}
       {unscheduled.length > 0 && (
@@ -174,8 +165,8 @@ export function Today({ habits, checks, tasks, now }: Props) {
                 style={{ overflow: "hidden" }}
               >
                 <div className="stack mt8" style={{ gap: 10, opacity: 0.65 }}>
-                  {unscheduled.map((h, i) => (
-                    <HabitRow key={h.id} habit={h} index={i} now={now} done={done} today={today} />
+                  {unscheduled.map((h) => (
+                    <HabitRow key={h.id} habit={h} now={now} done={done} today={today} />
                   ))}
                 </div>
               </motion.div>
@@ -199,15 +190,67 @@ export function Today({ habits, checks, tasks, now }: Props) {
   );
 }
 
+/**
+ * Lista del día con mecánica de "hundirse al completar": los pendientes suben,
+ * los cumplidos bajan a su propia sección con animación de resorte (layout).
+ */
+function TodayList({
+  habits,
+  now,
+  done,
+  today,
+}: {
+  habits: Habit[];
+  now: Date;
+  done: Set<string>;
+  today: string;
+}) {
+  const isDone = (h: Habit) => done.has(`${h.id}|${today}`);
+  const pending = habits.filter((h) => !isDone(h)).sort((a, b) => a.order - b.order);
+  const completed = habits.filter(isDone).sort((a, b) => a.order - b.order);
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      {pending.map((h) => (
+        <HabitRow key={h.id} habit={h} now={now} done={done} today={today} />
+      ))}
+      {habits.length === 0 && (
+        <div className="dim" style={{ fontSize: 13, padding: "4px 2px" }}>
+          Nada programado para hoy. 🎉
+        </div>
+      )}
+      <AnimatePresence>
+        {completed.length > 0 && (
+          <motion.div
+            layout
+            key="divider"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="row gap8"
+            style={{ padding: "6px 2px 0" }}
+          >
+            <span className="dim" style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: "0.08em" }}>
+              COMPLETADOS · {completed.length}
+            </span>
+            <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {completed.map((h) => (
+        <HabitRow key={h.id} habit={h} now={now} done={done} today={today} />
+      ))}
+    </div>
+  );
+}
+
 function HabitRow({
   habit: h,
-  index: i,
   now,
   done,
   today,
 }: {
   habit: Habit;
-  index: number;
   now: Date;
   done: Set<string>;
   today: string;
@@ -217,14 +260,17 @@ function HabitRow({
   const streak = currentStreak(h, now, done);
   return (
     <motion.div
+      layout
+      transition={{ type: "spring", stiffness: 420, damping: 34 }}
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: i * 0.03, duration: 0.3 }}
+      animate={{ opacity: isDone ? 0.62 : 1, y: 0 }}
       className="card row gap12"
       style={{ padding: "13px 15px", alignItems: "center" }}
       onClick={() => ui.editHabit(h)}
     >
-      <div
+      <motion.div
+        animate={isDone ? { scale: [1, 0.88, 1] } : {}}
+        transition={{ duration: 0.35 }}
         style={{
           width: 42,
           height: 42,
@@ -234,12 +280,20 @@ function HabitRow({
           fontSize: 22,
           background: "var(--surface-2)",
           border: `1px solid ${h.color}33`,
+          filter: isDone ? "saturate(0.7)" : "none",
         }}
       >
         {h.emoji}
-      </div>
+      </motion.div>
       <div className="grow" style={{ minWidth: 0 }}>
-        <div className="ellipsis" style={{ fontWeight: 600, fontSize: 15 }}>
+        <div
+          className="ellipsis"
+          style={{
+            fontWeight: 600,
+            fontSize: 15,
+            color: isDone ? "var(--text-2)" : "var(--text)",
+          }}
+        >
           {h.name}
         </div>
         <div className="row gap8" style={{ marginTop: 3 }}>
@@ -247,9 +301,14 @@ function HabitRow({
             {scheduleLabel(h)}
           </span>
           {streak > 0 && (
-            <span className="row streak" style={{ gap: 3, fontSize: 12, fontWeight: 700 }}>
+            <motion.span
+              className="row streak"
+              style={{ gap: 3, fontSize: 12, fontWeight: 700 }}
+              animate={isDone ? { scale: [1, 1.3, 1] } : {}}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
               <IconFlame size={13} /> {streak}
-            </span>
+            </motion.span>
           )}
         </div>
       </div>
