@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.google.com)",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/16LvY2wQOEjPpiCqaOIYKhgDRv0VAUb8WBgs1Wl-3ZLc/export?format=xlsx\" -o habitos.xlsx)"
+    ]
+  }
+}

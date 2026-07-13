@@ -1,0 +1,400 @@
+:root {
+  /* Superficie — carbón profundo con calidez */
+  --bg: #0e1013;
+  --bg-2: #14171c;
+  --surface: #191d24;
+  --surface-2: #1f242c;
+  --surface-hi: #262c36;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hi: rgba(255, 255, 255, 0.12);
+
+  /* Texto */
+  --text: #f4f6f8;
+  --text-2: #aeb6c2;
+  --text-3: #6b7482;
+
+  /* Marca — el verde de la plantilla original */
+  --accent: #b0ea81;
+  --accent-deep: #7bc95a;
+  --accent-ink: #16210c;
+
+  --danger: #ff6b6b;
+  --gold: #ffd479;
+
+  --radius: 22px;
+  --radius-sm: 14px;
+  --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
+  --shadow-soft: 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: 68px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(120% 80% at 50% -10%, #191f27 0%, var(--bg) 55%) fixed;
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+.app {
+  max-width: 460px;
+  margin: 0 auto;
+  min-height: 100%;
+  position: relative;
+}
+
+.screen {
+  padding: calc(var(--safe-top) + 20px) 18px calc(var(--tabbar-h) + var(--safe-bottom) + 28px);
+}
+
+/* ——— Tipografía ——— */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.h1 {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+  line-height: 1.1;
+}
+.h2 {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.muted {
+  color: var(--text-2);
+}
+.dim {
+  color: var(--text-3);
+}
+
+/* ——— Card ——— */
+.card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+/* ——— Tab bar ——— */
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  display: flex;
+  align-items: stretch;
+  background: rgba(16, 19, 24, 0.72);
+  backdrop-filter: saturate(1.4) blur(18px);
+  -webkit-backdrop-filter: saturate(1.4) blur(18px);
+  border-top: 1px solid var(--border);
+  z-index: 40;
+  max-width: 460px;
+  margin: 0 auto;
+}
+.tabbar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  position: relative;
+  transition: color 0.2s var(--ease);
+}
+.tabbar button.active {
+  color: var(--accent);
+}
+.tabbar .tab-ico {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+.tabbar .tab-dot {
+  position: absolute;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ——— Checkbox custom ——— */
+.check {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 2px solid var(--border-hi);
+  display: grid;
+  place-items: center;
+  flex: none;
+  position: relative;
+  background: var(--surface-2);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+.check.done {
+  border-color: transparent;
+}
+.check svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ——— Progress bar ——— */
+.bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-hi);
+  overflow: hidden;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
+}
+
+/* ——— Pills / chips ——— */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-hi);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.streak {
+  color: var(--gold);
+}
+
+/* ——— Botones ——— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 14px;
+  background: var(--surface-hi);
+  color: var(--text);
+  border: 1px solid var(--border);
+  transition: transform 0.12s var(--ease), background 0.2s var(--ease);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn.primary {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: var(--accent-ink);
+  border: none;
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn.danger {
+  color: var(--danger);
+}
+.btn.block {
+  width: 100%;
+}
+
+/* ——— FAB ——— */
+.fab {
+  position: fixed;
+  right: max(18px, calc((100vw - 460px) / 2 + 18px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px);
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 14px 30px -10px rgba(123, 201, 90, 0.5);
+  z-index: 41;
+}
+
+/* ——— Sheet / modal ——— */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 50;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 51;
+  max-width: 460px;
+  margin: 0 auto;
+  background: var(--bg-2);
+  border-top-left-radius: 26px;
+  border-top-right-radius: 26px;
+  border: 1px solid var(--border);
+  padding: 10px 18px calc(var(--safe-bottom) + 22px);
+  box-shadow: var(--shadow);
+}
+.sheet .grabber {
+  width: 42px;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--border-hi);
+  margin: 6px auto 14px;
+}
+
+.field {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s var(--ease);
+}
+.field:focus {
+  border-color: var(--accent-deep);
+}
+label.lbl {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 14px 2px 7px;
+}
+
+/* ——— Segmented control ——— */
+.seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.seg button {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-3);
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), transform 0.12s var(--ease);
+}
+.seg button:active {
+  transform: scale(0.96);
+}
+.seg button.on {
+  background: var(--surface-hi);
+  color: var(--text);
+  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* ——— Microinteracción universal de botones ——— */
+.pressable,
+.chip,
+.fab,
+.tabbar button {
+  transition: transform 0.14s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+.pressable:active,
+.chip:active {
+  transform: scale(0.93);
+}
+.fab:active {
+  transform: scale(0.9) rotate(-6deg);
+}
+.tabbar button:active {
+  transform: translateY(1px) scale(0.95);
+}
+button.card:active {
+  transform: scale(0.985);
+}
+button.card {
+  transition: transform 0.14s var(--ease), border-color 0.2s var(--ease);
+}
+
+/* ——— Chip de día perfecto ——— */
+.perfect {
+  background: linear-gradient(90deg, rgba(255, 212, 121, 0.16), rgba(176, 234, 129, 0.16));
+  border: 1px solid rgba(255, 212, 121, 0.35);
+  color: var(--gold);
+}
+
+/* utils */
+.row {
+  display: flex;
+  align-items: center;
+}
+.gap8 { gap: 8px; }
+.gap12 { gap: 12px; }
+.between { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.stack { display: flex; flex-direction: column; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt8 { margin-top: 8px; }
+.mt16 { margin-top: 16px; }
+.mt24 { margin-top: 24px; }
+
+::-webkit-scrollbar { width: 0; height: 0; }
