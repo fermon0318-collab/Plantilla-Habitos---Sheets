@@ -1,0 +1,15 @@
+# Deploy a Netlify — build automático si conectás el repo de GitHub.
+# Para arrastre manual del ZIP, subí el contenido de la carpeta dist/.
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

@@ -8,6 +8,7 @@ interface UICtx {
   addHabit: () => void;
   editHabit: (h: Habit) => void;
   openCommands: () => void;
+  theme: ThemeId;
 }
 
 const Ctx = createContext<UICtx | null>(null);
@@ -44,6 +45,7 @@ export function UIProvider({
       setEditorOpen(true);
     },
     openCommands: () => setCommandsOpen(true),
+    theme,
   };
 
   return (

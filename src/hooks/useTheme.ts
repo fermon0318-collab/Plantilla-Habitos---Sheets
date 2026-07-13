@@ -2,11 +2,18 @@ import { useEffect, useState } from "react";
 
 export type ThemeId = "verde" | "rosa" | "lila" | "morado";
 
-export const THEMES: { id: ThemeId; name: string; bg: string; accent: string; dark: boolean }[] = [
-  { id: "verde", name: "Bosque", bg: "#0e1013", accent: "#b0ea81", dark: true },
-  { id: "rosa", name: "Pétalo", bg: "#fbf3f6", accent: "#f48fb1", dark: false },
-  { id: "lila", name: "Lavanda", bg: "#f7f5fd", accent: "#a78bfa", dark: false },
-  { id: "morado", name: "Nocturno", bg: "#0d0a16", accent: "#8b5cf6", dark: true },
+export const THEMES: {
+  id: ThemeId;
+  name: string;
+  bg: string;
+  accent: string;
+  accentDeep: string;
+  dark: boolean;
+}[] = [
+  { id: "verde", name: "Bosque", bg: "#0e1013", accent: "#b0ea81", accentDeep: "#7bc95a", dark: true },
+  { id: "rosa", name: "Pétalo", bg: "#fbf3f6", accent: "#f48fb1", accentDeep: "#ec6f9d", dark: false },
+  { id: "lila", name: "Lavanda", bg: "#f7f5fd", accent: "#a78bfa", accentDeep: "#8b6cf0", dark: false },
+  { id: "morado", name: "Nocturno", bg: "#0d0a16", accent: "#a78bfa", accentDeep: "#8b5cf6", dark: true },
 ];
 
 const KEY = "habitos-theme";

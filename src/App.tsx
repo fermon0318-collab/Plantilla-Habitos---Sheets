@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { motion } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "./domain/db";
@@ -8,17 +8,21 @@ import { Today } from "./screens/Today";
 import { Week } from "./screens/Week";
 import { Month } from "./screens/Month";
 import { Stats } from "./screens/Stats";
-import { IconToday, IconWeek, IconMonth, IconStats } from "./ui/icons";
+
+// El jardín arrastra lottie-web + los assets; se carga solo al abrir su pestaña.
+const Garden = lazy(() => import("./screens/Garden").then((m) => ({ default: m.Garden })));
+import { IconToday, IconWeek, IconMonth, IconStats, IconGarden } from "./ui/icons";
 import { UIProvider } from "./ui/uiContext";
 import type { Habit, Check, Task } from "./domain/types";
 
-type Tab = "hoy" | "semana" | "mes" | "stats";
+type Tab = "hoy" | "semana" | "mes" | "jardin" | "stats";
 
 const TABS: { id: Tab; label: string; Icon: typeof IconToday }[] = [
   { id: "hoy", label: "Hoy", Icon: IconToday },
   { id: "semana", label: "Semana", Icon: IconWeek },
   { id: "mes", label: "Mes", Icon: IconMonth },
-  { id: "stats", label: "Estadísticas", Icon: IconStats },
+  { id: "jardin", label: "Jardín", Icon: IconGarden },
+  { id: "stats", label: "Análisis", Icon: IconStats },
 ];
 
 export function App() {
@@ -60,6 +64,16 @@ export function App() {
             <Week habits={habits!} checks={checks!} now={now} />
           ) : tab === "mes" ? (
             <Month habits={habits!} checks={checks!} now={now} />
+          ) : tab === "jardin" ? (
+            <Suspense
+              fallback={
+                <div className="screen" style={{ opacity: 0.5 }}>
+                  Cargando tu jardín…
+                </div>
+              }
+            >
+              <Garden habits={habits!} checks={checks!} now={now} />
+            </Suspense>
           ) : (
             <Stats habits={habits!} checks={checks!} now={now} />
           )}

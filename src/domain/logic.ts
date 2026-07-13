@@ -281,3 +281,59 @@ export function achievements(habits: Habit[], checks: Check[], today: Date): Ach
 export function toDoneSet(checks: Check[]): Set<string> {
   return checkSet(checks);
 }
+
+// ——————————————————— JARDÍN ———————————————————
+
+/**
+ * Umbral para "ganar" el árbol del mes. Se mide sobre el % mensual ponderado
+ * por meta, así que da igual tener 3 o 7 hábitos o la frecuencia semanal:
+ * siempre es el mismo criterio de completitud del mes.
+ */
+export const WIN_THRESHOLD = 0.8;
+
+export type TreeStage = "seed" | "sprout" | "plant" | "tree";
+
+/** Etapa del árbol según el progreso del mes (0–1). */
+export function treeStage(rate: number): TreeStage {
+  if (rate >= WIN_THRESHOLD) return "tree";
+  if (rate >= 0.5) return "plant";
+  if (rate >= 0.2) return "sprout";
+  return "seed";
+}
+
+export interface GardenMonth {
+  key: string; // "YYYY-MM"
+  date: Date; // primer día del mes
+  rate: number;
+  won: boolean;
+  isCurrent: boolean;
+  stage: TreeStage;
+}
+
+/**
+ * Un registro por mes desde la primera actividad hasta el mes actual.
+ * - Mes pasado con rate ≥ umbral → árbol ganado.
+ * - Mes pasado por debajo → solo tronco.
+ * - Mes actual → en progreso (crece según el rate hasta hoy).
+ */
+export function garden(habits: Habit[], checks: Check[], today: Date): GardenMonth[] {
+  const dates = checks.filter((c) => c.done).map((c) => c.date).sort();
+  const firstMonth = dates.length > 0 ? startOfMonth(parseISO(dates[0])) : startOfMonth(today);
+  const curMonth = startOfMonth(today);
+  const months: GardenMonth[] = [];
+  let cursor = firstMonth;
+  for (let i = 0; i < 600 && cursor <= curMonth; i++) {
+    const isCurrent = dateKey(cursor) === dateKey(curMonth);
+    const rate = monthSummary(habits, checks, cursor, today).monthlyRate;
+    months.push({
+      key: format(cursor, "yyyy-MM"),
+      date: cursor,
+      rate,
+      won: !isCurrent && rate >= WIN_THRESHOLD,
+      isCurrent,
+      stage: treeStage(rate),
+    });
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+  return months;
+}

@@ -40,6 +40,12 @@ export const IconStats = ({ size, className, style }: P) => (
     <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
   </svg>
 );
+export const IconGarden = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M12 22v-6" />
+    <path d="M12 16c-3.6 0-5.6-2.2-5.6-5 0-1 .3-1.9.8-2.6C6.5 6 8 4.5 12 3c4 1.5 5.5 3 4.8 5.4.5.7.8 1.6.8 2.6 0 2.8-2 5-5.6 5z" />
+  </svg>
+);
 export const IconPlus = ({ size, className, style }: P) => (
   <svg {...base(size)} className={className} style={style}>
     <path d="M12 5v14M5 12h14" />
