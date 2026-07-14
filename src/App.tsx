@@ -27,7 +27,9 @@ const TABS: { id: Tab; label: string; Icon: typeof IconToday }[] = [
 
 export function App() {
   const [tab, setTab] = useState<Tab>("hoy");
-  const now = useNow();
+  // El reloj vivo (segundos) vive en un componente aparte; aquí solo necesitamos
+  // la fecha, que cambia como mucho una vez por minuto → menos recálculos.
+  const now = useNow(60000);
   const { theme, setTheme } = useTheme();
 
   const habits = useLiveQuery(

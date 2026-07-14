@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { startOfWeek, addDays, addWeeks, isSameDay, format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Habit, Check } from "../domain/types";
-import { dateKey, toDoneSet, weeklyTarget, isScheduled, weekdayRhythm } from "../domain/logic";
+import { dateKey, toDoneSet, weeklyTarget, isScheduled } from "../domain/logic";
 import { toggleCheck } from "../domain/actions";
 import { cap, pct } from "../ui/format";
 import { IconChevron, IconCheck } from "../ui/icons";
@@ -27,7 +27,9 @@ export function Week({ habits, checks, now }: Props) {
     return acc + Math.min(c, weeklyTarget(h));
   }, 0);
   const weekTarget = habits.reduce((a, h) => a + weeklyTarget(h), 0);
-  const rhythm = weekdayRhythm(checks);
+  // Ritmo DE la semana seleccionada: hábitos completados por cada día.
+  const rhythm = days.map((d) => habits.filter((h) => done.has(`${h.id}|${dateKey(d)}`)).length);
+  const rhythmLabels = days.map((d) => cap(format(d, "EEE", { locale: es })));
 
   return (
     <div className="screen">
@@ -129,7 +131,8 @@ export function Week({ habits, checks, now }: Props) {
                       <motion.button
                         whileTap={{ scale: 0.8 }}
                         onClick={() => toggleCheck(h.id, dateKey(d))}
-                        aria-label={h.name}
+                        aria-label={`${h.name} · ${cap(format(d, "EEE d", { locale: es }))}`}
+                        aria-pressed={on}
                         style={{
                           width: 30,
                           height: 30,
@@ -162,6 +165,12 @@ export function Week({ habits, checks, now }: Props) {
                   }}
                 >
                   {shown}/{target}
+                  {count > target && (
+                    <span className="dim" style={{ fontWeight: 700 }}>
+                      {" "}
+                      +{count - target}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -169,19 +178,16 @@ export function Week({ habits, checks, now }: Props) {
         })}
       </div>
 
-      {/* Ritmo semanal */}
+      {/* Ritmo de la semana */}
       <div className="card mt24" style={{ padding: "18px 12px 12px" }}>
         <div className="eyebrow" style={{ paddingLeft: 6, marginBottom: 4 }}>
-          Ritmo semanal
+          Ritmo de la semana
         </div>
         {rhythm.some((v) => v > 0) ? (
-          <RadarChart
-            values={rhythm}
-            labels={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
-          />
+          <RadarChart values={rhythm} labels={rhythmLabels} />
         ) : (
           <div className="dim" style={{ fontSize: 13, textAlign: "center", padding: "24px 0" }}>
-            Marcá hábitos para ver tu ritmo por día.
+            Marcá hábitos esta semana para ver tu ritmo por día.
           </div>
         )}
       </div>

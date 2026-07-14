@@ -7,6 +7,7 @@ import {
   monthSummary,
   toDoneSet,
   dailyRate,
+  dayRoster,
   currentStreak,
   globalStreak,
   isScheduled,
@@ -19,8 +20,9 @@ import { Ring } from "../ui/Ring";
 import { Checkbox } from "../ui/Checkbox";
 import { Confetti } from "../ui/Confetti";
 import { LottieTree } from "../ui/LottieTree";
+import { LiveClock } from "../ui/LiveClock";
 import { toggleCheck, addTask, toggleTask, deleteTask, haptic } from "../domain/actions";
-import { fmtLongDate, fmtTime, pct, scheduleLabel } from "../ui/format";
+import { fmtLongDate, pct, scheduleLabel } from "../ui/format";
 import { useUI } from "../ui/uiContext";
 import { THEMES } from "../hooks/useTheme";
 import { IconBolt, IconFlame, IconPlus, IconClose, IconCheck, IconChevron } from "../ui/icons";
@@ -41,11 +43,14 @@ export function Today({ habits, checks, tasks, now }: Props) {
   const daily = dailyRate(habits, done, now);
   const lvl = LEVEL_META[summary.level];
   const nextPct = progressToNextLevel(summary.monthlyRate);
-  const streak = globalStreak(checks, now);
+  const streak = globalStreak(habits, checks, now);
+  const roster = dayRoster(habits, done, now);
 
   const scheduled = habits.filter((h) => isScheduled(h, now));
-  const unscheduled = habits.filter((h) => !isScheduled(h, now));
-  const completedToday = scheduled.filter((h) => done.has(`${h.id}|${today}`)).length;
+  const unscheduledDone = habits.filter((h) => !isScheduled(h, now) && done.has(`${h.id}|${today}`));
+  const unscheduledPending = habits.filter((h) => !isScheduled(h, now) && !done.has(`${h.id}|${today}`));
+  // Lista principal: lo de hoy + cualquier hábito de día libre que igual completaste.
+  const mainList = [...scheduled, ...unscheduledDone];
   // Cuenta TODAS las marcas de hoy (programadas o no) para reproducir la animación del árbol.
   const doneTodayCount = habits.filter((h) => done.has(`${h.id}|${today}`)).length;
   const perfect = isPerfectDay(habits, done, now);
@@ -73,25 +78,25 @@ export function Today({ habits, checks, tasks, now }: Props) {
           <h1 className="h1">{fmtLongDate(now)}</h1>
         </div>
         <div className="row gap8" style={{ flex: "none" }}>
-          <motion.div
-            className="streak-pill"
-            animate={streak > 0 ? { scale: [1, 1.12, 1] } : {}}
-            transition={{ duration: 0.4 }}
-            key={streak}
-            aria-label={`Racha de ${streak} días`}
-          >
-            <IconFlame size={15} />
-            {streak}
-          </motion.div>
+          {streak > 0 && (
+            <motion.div
+              className="streak-pill"
+              animate={{ scale: [1, 1.12, 1] }}
+              transition={{ duration: 0.4 }}
+              key={streak}
+              aria-label={`Racha de ${streak} días`}
+            >
+              <IconFlame size={15} />
+              {streak}
+            </motion.div>
+          )}
           <button className="chip" onClick={ui.openCommands} aria-label="Comandos" style={{ padding: "6px 10px" }}>
             <IconBolt size={15} className="streak" />
           </button>
         </div>
       </div>
       <div className="row gap8 mt8">
-        <div className="chip" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {fmtTime(now)}
-        </div>
+        <LiveClock />
         <AnimatePresence>
           {perfect && (
             <motion.div
@@ -144,7 +149,7 @@ export function Today({ habits, checks, tasks, now }: Props) {
         </div>
 
         <div className="row between mt16" style={{ paddingTop: 14, borderTop: "1px solid var(--border)" }}>
-          <Stat label="Hoy" value={`${completedToday}/${scheduled.length}`} />
+          <Stat label="Hoy" value={`${roster.completed}/${roster.total}`} />
           <Stat label="Mes" value={pct(summary.monthlyRate)} />
           <Stat label="Hábitos" value={String(habits.length)} />
         </div>
@@ -154,14 +159,14 @@ export function Today({ habits, checks, tasks, now }: Props) {
       <div className="row between mt24" style={{ marginBottom: 12 }}>
         <h2 className="h2">Para hoy</h2>
         <span className="dim" style={{ fontSize: 13, fontWeight: 600 }}>
-          {completedToday} de {scheduled.length}
+          {roster.completed} de {roster.total}
         </span>
       </div>
 
-      <TodayList habits={scheduled} now={now} done={done} today={today} />
+      <TodayList habits={mainList} now={now} done={done} today={today} />
 
-      {/* No programados hoy */}
-      {unscheduled.length > 0 && (
+      {/* No programados hoy (pendientes) */}
+      {unscheduledPending.length > 0 && (
         <>
           <button
             className="row gap8 mt16 pressable"
@@ -177,7 +182,7 @@ export function Today({ habits, checks, tasks, now }: Props) {
               }}
             />
             <span className="dim" style={{ fontSize: 13, fontWeight: 700 }}>
-              No programados hoy ({unscheduled.length})
+              No programados hoy ({unscheduledPending.length})
             </span>
           </button>
           <AnimatePresence initial={false}>
@@ -190,7 +195,7 @@ export function Today({ habits, checks, tasks, now }: Props) {
                 style={{ overflow: "hidden" }}
               >
                 <div className="stack mt8" style={{ gap: 10, opacity: 0.65 }}>
-                  {unscheduled.map((h) => (
+                  {unscheduledPending.map((h) => (
                     <HabitRow key={h.id} habit={h} now={now} done={done} today={today} />
                   ))}
                 </div>

@@ -6,6 +6,7 @@ interface Props {
   stroke?: number;
   color?: string;
   track?: string;
+  label?: string;
   children?: React.ReactNode;
 }
 
@@ -16,13 +17,18 @@ export function Ring({
   stroke = 10,
   color = "var(--accent)",
   track = "var(--surface-hi)",
+  label,
   children,
 }: Props) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, value));
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
+    <div
+      style={{ position: "relative", width: size, height: size }}
+      role="img"
+      aria-label={label ?? `${Math.round(clamped * 100)}% completado`}
+    >
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
         <motion.circle

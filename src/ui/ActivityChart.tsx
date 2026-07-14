@@ -21,8 +21,15 @@ export function ActivityChart({ values, height = 150 }: Props) {
   const line = values.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
   const area = `${line} L ${x(n - 1).toFixed(1)} ${y(0)} L ${x(0).toFixed(1)} ${y(0)} Z`;
 
+  const totalDone = values.reduce((a, b) => a + b, 0);
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+    <svg
+      width="100%"
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ display: "block" }}
+      role="img"
+      aria-label={`Actividad diaria del mes: ${totalDone} marcas en total, máximo ${maxV} en un día`}
+    >
       <defs>
         <linearGradient id="actFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.42" />

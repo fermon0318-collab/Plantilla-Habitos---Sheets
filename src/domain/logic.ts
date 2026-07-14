@@ -212,12 +212,8 @@ export function monthSummary(
  * Solo cuenta los hábitos programados para ese día — no castiga por lo que no tocaba.
  */
 export function dailyRate(habits: Habit[], done: Set<string>, day: Date): number {
-  const scheduled = habits.filter((h) => isScheduled(h, day));
-  if (scheduled.length === 0) return 0;
-  const k = dateKey(day);
-  let n = 0;
-  for (const h of scheduled) if (done.has(`${h.id}|${k}`)) n++;
-  return n / scheduled.length;
+  const { completed, total } = dayRoster(habits, done, day);
+  return total === 0 ? 0 : completed / total;
 }
 
 /** Día perfecto: todos los hábitos que tocaban ese día están cumplidos (y había al menos uno). */
@@ -283,19 +279,41 @@ export function toDoneSet(checks: Check[]): Set<string> {
 }
 
 /**
- * Racha global estilo Duolingo: días de calendario consecutivos (hasta hoy) en los
- * que se completó al menos un hábito. Si hoy aún no hay nada, no rompe: cuenta desde ayer.
+ * Racha global estilo Duolingo: días consecutivos (hasta hoy) en los que se completó
+ * al menos un hábito **programado para ese día** (no cuentan las marcas fuera de agenda).
+ * Si hoy aún no hay nada, no rompe: empieza a contar desde ayer.
  */
-export function globalStreak(checks: Check[], today: Date): number {
-  const activeDays = new Set(checks.filter((c) => c.done).map((c) => c.date));
+export function globalStreak(habits: Habit[], checks: Check[], today: Date): number {
+  const done = checkSet(checks);
+  const dayCounts = (d: Date) =>
+    habits.some((h) => isScheduled(h, d) && done.has(`${h.id}|${dateKey(d)}`));
   let streak = 0;
   let cursor = new Date(today);
-  if (!activeDays.has(dateKey(cursor))) cursor = subDays(cursor, 1);
-  for (let i = 0; i < 2000 && activeDays.has(dateKey(cursor)); i++) {
+  if (!dayCounts(cursor)) cursor = subDays(cursor, 1);
+  for (let i = 0; i < 2000 && dayCounts(cursor); i++) {
     streak++;
     cursor = subDays(cursor, 1);
   }
   return streak;
+}
+
+/**
+ * "Roster" del día: los hábitos programados para hoy MÁS cualquier hábito de día libre
+ * que igual completaste (para que el esfuerzo extra cuente). Devuelve {completados, total}.
+ */
+export function dayRoster(
+  habits: Habit[],
+  done: Set<string>,
+  day: Date
+): { completed: number; total: number } {
+  const k = dateKey(day);
+  const roster = new Set<string>();
+  for (const h of habits) {
+    if (isScheduled(h, day) || done.has(`${h.id}|${k}`)) roster.add(h.id);
+  }
+  let completed = 0;
+  for (const id of roster) if (done.has(`${id}|${k}`)) completed++;
+  return { completed, total: roster.size };
 }
 
 /**
@@ -353,11 +371,19 @@ export interface GardenMonth {
 
 /**
  * Un registro por mes desde la primera actividad hasta el mes actual.
- * - Mes pasado con rate ≥ umbral → árbol ganado.
+ * - Mes pasado con rate ≥ umbral (o ya registrado en `earned`) → árbol ganado.
  * - Mes pasado por debajo → solo tronco.
  * - Mes actual → en progreso (crece según el rate hasta hoy).
+ *
+ * `earned` es el conjunto de meses ya ganados: una vez ganado un árbol no se pierde
+ * aunque después cambien los hábitos.
  */
-export function garden(habits: Habit[], checks: Check[], today: Date): GardenMonth[] {
+export function garden(
+  habits: Habit[],
+  checks: Check[],
+  today: Date,
+  earned: Set<string> = new Set()
+): GardenMonth[] {
   const dates = checks.filter((c) => c.done).map((c) => c.date).sort();
   const firstMonth = dates.length > 0 ? startOfMonth(parseISO(dates[0])) : startOfMonth(today);
   const curMonth = startOfMonth(today);
@@ -365,15 +391,10 @@ export function garden(habits: Habit[], checks: Check[], today: Date): GardenMon
   let cursor = firstMonth;
   for (let i = 0; i < 600 && cursor <= curMonth; i++) {
     const isCurrent = dateKey(cursor) === dateKey(curMonth);
+    const key = format(cursor, "yyyy-MM");
     const rate = monthSummary(habits, checks, cursor, today).monthlyRate;
-    months.push({
-      key: format(cursor, "yyyy-MM"),
-      date: cursor,
-      rate,
-      won: !isCurrent && rate >= WIN_THRESHOLD,
-      isCurrent,
-      stage: treeStage(rate),
-    });
+    const won = !isCurrent && (rate >= WIN_THRESHOLD || earned.has(key));
+    months.push({ key, date: cursor, rate, won, isCurrent, stage: treeStage(rate) });
     cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
   }
   return months;

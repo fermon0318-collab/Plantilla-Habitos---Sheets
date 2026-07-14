@@ -5,6 +5,7 @@ import { copyPreviousMonth, clearMonth, clearHabitMonth, haptic } from "../domai
 import { fmtMonthYear, scheduleLabel } from "../ui/format";
 import type { Habit } from "../domain/types";
 import { THEMES, type ThemeId } from "../hooks/useTheme";
+import { useUI } from "../ui/uiContext";
 import {
   IconBolt,
   IconChevron,
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit, onAdd }: Props) {
+  const ui = useUI();
   const [uncheckMode, setUncheckMode] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -100,7 +102,16 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
               icon={<IconCopy size={19} />}
               title="Copiar datos del mes anterior"
               sub="Replica las marcas del mes previo"
-              onClick={() => run(() => copyPreviousMonth(month))}
+              onClick={async () => {
+                if (
+                  await ui.confirm({
+                    title: "¿Copiar el mes anterior?",
+                    message: `Se replicarán las marcas del mes previo sobre ${fmtMonthYear(month)}.`,
+                    confirmLabel: "Copiar",
+                  })
+                )
+                  run(() => copyPreviousMonth(month));
+              }}
               disabled={busy}
             />
             <CmdRow
@@ -115,10 +126,17 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
               title="Limpiar toda la plantilla"
               sub={`Borra las marcas de ${fmtMonthYear(month)}`}
               danger
-              onClick={() =>
-                window.confirm(`¿Borrar todas las marcas de ${fmtMonthYear(month)}?`) &&
-                run(() => clearMonth(month))
-              }
+              onClick={async () => {
+                if (
+                  await ui.confirm({
+                    title: "¿Limpiar toda la plantilla?",
+                    message: `Se borrarán todas las marcas de ${fmtMonthYear(month)}. No se puede deshacer.`,
+                    confirmLabel: "Borrar",
+                    danger: true,
+                  })
+                )
+                  run(() => clearMonth(month));
+              }}
               disabled={busy}
             />
 
@@ -163,13 +181,20 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
                 key={h.id}
                 className="card row between"
                 style={{ padding: "12px 14px" }}
-                onClick={() =>
-                  window.confirm(`¿Desmarcar "${h.name}" en ${fmtMonthYear(month)}?`) &&
-                  run(async () => {
-                    await clearHabitMonth(h.id, month);
-                    setUncheckMode(false);
-                  })
-                }
+                onClick={async () => {
+                  if (
+                    await ui.confirm({
+                      title: `¿Desmarcar "${h.name}"?`,
+                      message: `Se quitarán sus marcas de ${fmtMonthYear(month)}.`,
+                      confirmLabel: "Desmarcar",
+                      danger: true,
+                    })
+                  )
+                    run(async () => {
+                      await clearHabitMonth(h.id, month);
+                      setUncheckMode(false);
+                    });
+                }}
               >
                 <span className="row gap12">
                   <span style={{ fontSize: 20 }}>{h.emoji}</span>

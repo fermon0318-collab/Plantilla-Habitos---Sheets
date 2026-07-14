@@ -21,7 +21,13 @@ export function RadarChart({ values, labels, size = 240 }: Props) {
   const poly = values.map((v, i) => pt(i, (v / max) * R).join(",")).join(" ");
 
   return (
-    <svg width="100%" viewBox={`0 0 ${size} ${size}`} style={{ display: "block", maxWidth: size, margin: "0 auto" }}>
+    <svg
+      width="100%"
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ display: "block", maxWidth: size, margin: "0 auto" }}
+      role="img"
+      aria-label={"Ritmo por día: " + labels.map((l, i) => `${l} ${values[i].toFixed(1)}`).join(", ")}
+    >
       {/* anillos */}
       {rings.map((ring) => (
         <polygon

@@ -3,6 +3,7 @@ import { BottomSheet } from "../ui/Sheet";
 import { addHabit, updateHabit, deleteHabit, haptic } from "../domain/actions";
 import type { Habit } from "../domain/types";
 import { IconTrash } from "../ui/icons";
+import { useUI } from "../ui/uiContext";
 
 const EMOJIS = ["🌅","💪","📖","💧","🧠","🏃","🧘","🥗","😴","💰","📘","🎨","🎸","✍️","🧹","☀️","📵","🙏","🐕","☕"];
 const DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function HabitEditor({ open, onClose, editing }: Props) {
+  const ui = useUI();
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("✨");
   const [frequency, setFrequency] = useState(5);
@@ -49,7 +51,13 @@ export function HabitEditor({ open, onClose, editing }: Props) {
 
   const remove = async () => {
     if (!editing) return;
-    if (!window.confirm(`¿Eliminar "${editing.name}" y todo su historial? Esta acción no se puede deshacer.`)) return;
+    const ok = await ui.confirm({
+      title: `¿Eliminar "${editing.name}"?`,
+      message: "Se borrará el hábito y todo su historial. No se puede deshacer.",
+      confirmLabel: "Eliminar",
+      danger: true,
+    });
+    if (!ok) return;
     await deleteHabit(editing.id);
     onClose();
   };

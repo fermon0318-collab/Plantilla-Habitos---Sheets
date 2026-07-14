@@ -360,6 +360,7 @@ select {
   color: var(--accent-ink);
   display: grid;
   place-items: center;
+  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.45);
   box-shadow: 0 14px 30px -10px color-mix(in srgb, var(--accent-deep) 50%, transparent);
   z-index: 41;
 }
@@ -393,6 +394,32 @@ select {
   border-radius: 99px;
   background: var(--border-hi);
   margin: 6px auto 14px;
+}
+
+/* ——— Diálogo de confirmación ——— */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.confirm-dialog {
+  width: min(92vw, 360px);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 22px 20px 18px;
+  box-shadow: var(--shadow);
+}
+.btn.danger-solid {
+  background: var(--danger);
+  color: #fff;
+  border: none;
 }
 
 .field {
@@ -473,11 +500,13 @@ button.card {
 
 /* ——— Chip de día perfecto ——— */
 .perfect {
+  background: rgba(255, 212, 121, 0.15);
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--gold) 16%, transparent),
     color-mix(in srgb, var(--accent) 16%, transparent)
   );
+  border: 1px solid rgba(255, 212, 121, 0.35);
   border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
   color: var(--gold);
 }

@@ -12,6 +12,10 @@ import {
 } from "../domain/logic";
 import { fmtMonthYear, pct } from "../ui/format";
 import { IconChevron, IconFlame, IconTrophy } from "../ui/icons";
+import { LottieTree } from "../ui/LottieTree";
+import { treeStage } from "../domain/logic";
+import { useUI } from "../ui/uiContext";
+import { THEMES } from "../hooks/useTheme";
 
 interface Props {
   habits: Habit[];
@@ -20,6 +24,8 @@ interface Props {
 }
 
 export function Stats({ habits, checks, now }: Props) {
+  const { theme } = useUI();
+  const t = THEMES.find((x) => x.id === theme)!;
   const [offset, setOffset] = useState(0);
   const month = addMonths(now, offset);
   const s = monthSummary(habits, checks, month, now);
@@ -32,9 +38,9 @@ export function Stats({ habits, checks, now }: Props) {
 
   return (
     <div className="screen">
-      <div className="eyebrow">Análisis</div>
+      <div className="eyebrow">Resumen del mes</div>
       <div className="row between">
-        <h1 className="h1">Estadísticas</h1>
+        <h1 className="h1">Análisis</h1>
         <div className="row gap8">
           <button className="chip" onClick={() => setOffset((o) => o - 1)}>
             <IconChevron size={16} className="dim" style={{ transform: "rotate(180deg)" }} />
@@ -56,7 +62,7 @@ export function Stats({ habits, checks, now }: Props) {
         <Tile label="Progreso" value={pct(s.monthlyRate)} />
         <Tile label="Constancia" value={pct(s.averageConstancy)} />
         <Tile label="Días ⭐" value={String(perfectDays)} />
-        <Tile label="Nivel" value={`${lvl.tree} ${s.level}`} />
+        <Tile label="Nivel" value={String(s.level)} />
       </div>
 
       {/* Nivel + siguiente */}
@@ -70,7 +76,14 @@ export function Stats({ habits, checks, now }: Props) {
               {lvl.blurb}
             </span>
           </div>
-          <span style={{ fontSize: 40 }}>{lvl.tree}</span>
+          <LottieTree
+            key={`${theme}-${offset}-${treeStage(s.monthlyRate)}`}
+            stage={treeStage(s.monthlyRate)}
+            size={60}
+            accent={t.accent}
+            accentDeep={t.accentDeep}
+            ink={t.ink}
+          />
         </div>
         <div className="bar mt16">
           <motion.i
@@ -111,7 +124,7 @@ export function Stats({ habits, checks, now }: Props) {
           style={{
             padding: 16,
             alignItems: "center",
-            border: "1px solid color-mix(in srgb, var(--gold) 25%, transparent)",
+            border: "1px solid rgba(255, 212, 121, 0.25)",
           }}
         >
           <div
@@ -121,7 +134,7 @@ export function Stats({ habits, checks, now }: Props) {
               borderRadius: 14,
               display: "grid",
               placeItems: "center",
-              background: "color-mix(in srgb, var(--gold) 12%, transparent)",
+              background: "rgba(255, 212, 121, 0.12)",
             }}
           >
             <IconFlame size={24} className="streak" />
@@ -168,9 +181,7 @@ export function Stats({ habits, checks, now }: Props) {
               textAlign: "center",
               filter: m.unlocked ? "none" : "grayscale(1)",
               opacity: m.unlocked ? 1 : 0.4,
-              border: m.unlocked
-                ? "1px solid color-mix(in srgb, var(--accent) 30%, transparent)"
-                : undefined,
+              border: m.unlocked ? `1px solid ${t.accent}4d` : undefined,
             }}
             title={m.desc}
           >

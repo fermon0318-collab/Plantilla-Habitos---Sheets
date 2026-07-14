@@ -111,14 +111,14 @@ export function LottieTree({
     };
   }, [data, loop, autoplay]);
 
-  // Reproducir de nuevo al cambiar replayKey (sin recargar la animación).
-  const firstRun = useRef(true);
+  // Reproducir de nuevo SOLO cuando replayKey crece (al marcar, no al desmarcar).
+  const prevKey = useRef<number | null>(null);
   useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false;
-      return;
+    const k = typeof replayKey === "number" ? replayKey : null;
+    if (prevKey.current !== null && k !== null && k > prevKey.current) {
+      anim.current?.goToAndPlay(0, true);
     }
-    anim.current?.goToAndPlay(0, true);
+    prevKey.current = k;
   }, [replayKey]);
 
   return <div ref={box} style={{ width: size, height: size }} aria-hidden />;

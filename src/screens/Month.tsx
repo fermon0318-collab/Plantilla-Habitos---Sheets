@@ -42,6 +42,12 @@ const WD = ["L", "M", "X", "J", "V", "S", "D"];
 export function Month({ habits, checks, now }: Props) {
   const { theme } = useUI();
   const t = THEMES.find((x) => x.id === theme)!;
+  // rgb del acento para el heatmap (rgba tiene soporte universal; color-mix no en Safari viejo).
+  const [ar, ag, ab] = (() => {
+    const h = t.accent.replace("#", "");
+    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  })();
+  const heat = (rate: number) => `rgba(${ar}, ${ag}, ${ab}, ${(0.16 + rate * 0.72).toFixed(2)})`;
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Date | null>(null);
   const month = addMonths(now, offset);
@@ -125,10 +131,7 @@ export function Month({ habits, checks, now }: Props) {
                   fontSize: 13,
                   fontWeight: 700,
                   color: strong ? "var(--accent-ink)" : today ? "var(--accent)" : "var(--text-2)",
-                  background:
-                    rate > 0
-                      ? `color-mix(in srgb, var(--accent) ${Math.round((0.14 + rate * 0.86) * 100)}%, var(--surface-2))`
-                      : "var(--surface-2)",
+                  background: rate > 0 ? heat(rate) : "var(--surface-2)",
                   border: today ? "1.5px solid var(--accent)" : "1px solid var(--border)",
                   display: "grid",
                   placeItems: "center",
@@ -144,15 +147,7 @@ export function Month({ habits, checks, now }: Props) {
             Menos
           </span>
           {[0.1, 0.35, 0.6, 0.85, 1].map((a) => (
-            <span
-              key={a}
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 5,
-                background: `color-mix(in srgb, var(--accent) ${Math.round((0.14 + a * 0.86) * 100)}%, var(--surface-2))`,
-              }}
-            />
+            <span key={a} style={{ width: 16, height: 16, borderRadius: 5, background: heat(a) }} />
           ))}
           <span className="dim" style={{ fontSize: 11 }}>
             Más

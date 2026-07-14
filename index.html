@@ -5,9 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <meta name="theme-color" content="#0e1013" />
+    <meta name="description" content="Seguí tus hábitos, rachas y metas con un jardín que crece cada mes. App local-first, funciona sin conexión." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Hábitos Personales</title>
+    <script>
+      // Aplica el tema guardado antes de pintar, para evitar el parpadeo (FOUC).
+      (function () {
+        try {
+          var t = localStorage.getItem("habitos-theme");
+          var bg = { verde: "#0e1013", rosa: "#fbf3f6", lila: "#f7f5fd", morado: "#0d0a16" };
+          if (t && bg[t]) {
+            if (t !== "verde") document.documentElement.setAttribute("data-theme", t);
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute("content", bg[t]);
+            document.documentElement.style.background = bg[t];
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

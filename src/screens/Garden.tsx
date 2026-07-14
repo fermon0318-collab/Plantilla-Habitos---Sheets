@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { Habit, Check } from "../domain/types";
 import { garden, dateKey, WIN_THRESHOLD, type GardenMonth } from "../domain/logic";
+import { loadEarned, saveEarned } from "../domain/earned";
 import { LottieTree } from "../ui/LottieTree";
 import { Trunk } from "../ui/Trunk";
 import { cap, pct } from "../ui/format";
@@ -20,11 +21,23 @@ interface Props {
 export function Garden({ habits, checks, now }: Props) {
   const { theme } = useUI();
   const t = THEMES.find((x) => x.id === theme)!;
+  const earned = useMemo(() => loadEarned(), []);
   // Recalcula solo cuando cambia el día o los datos, no en cada tic del reloj.
   const months = useMemo(
-    () => garden(habits, checks, now),
-    [habits, checks, dateKey(now)]
+    () => garden(habits, checks, now, earned),
+    [habits, checks, dateKey(now), earned]
   );
+  // "Fija" los árboles ganados: una vez ganado un mes, queda registrado para siempre.
+  useEffect(() => {
+    let changed = false;
+    for (const m of months) {
+      if (m.won && !earned.has(m.key)) {
+        earned.add(m.key);
+        changed = true;
+      }
+    }
+    if (changed) saveEarned(earned);
+  }, [months, earned]);
   const current = months.find((m) => m.isCurrent)!;
   const past = months.filter((m) => !m.isCurrent).reverse();
   const wonCount = months.filter((m) => m.won).length;
