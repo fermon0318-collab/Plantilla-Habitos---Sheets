@@ -21,11 +21,11 @@ import { Checkbox } from "../ui/Checkbox";
 import { Confetti } from "../ui/Confetti";
 import { LottieTree } from "../ui/LottieTree";
 import { LiveClock } from "../ui/LiveClock";
-import { toggleCheck, addTask, toggleTask, deleteTask, haptic } from "../domain/actions";
+import { toggleCheck, addTask, toggleTask, updateTask, deleteTask, haptic } from "../domain/actions";
 import { fmtLongDate, pct, scheduleLabel } from "../ui/format";
 import { useUI } from "../ui/uiContext";
 import { THEMES } from "../hooks/useTheme";
-import { IconBolt, IconFlame, IconPlus, IconClose, IconCheck, IconChevron } from "../ui/icons";
+import { IconBolt, IconFlame, IconPlus, IconClose, IconCheck, IconChevron, IconEdit } from "../ui/icons";
 
 interface Props {
   habits: Habit[];
@@ -365,18 +365,40 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function TaskSection({ tasks, now }: { tasks: Task[]; now: Date }) {
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [due, setDue] = useState("");
   const sorted = [...tasks].sort(
     (a, b) => Number(a.done) - Number(b.done) || (a.dueDate ?? "z").localeCompare(b.dueDate ?? "z")
   );
 
-  const submit = async () => {
-    if (!name.trim()) return;
-    await addTask(name, due || null);
+  const startAdd = () => {
+    setEditingId(null);
     setName("");
     setDue("");
+    setAdding((v) => !v);
+  };
+
+  const startEdit = (t: Task) => {
     setAdding(false);
+    setEditingId(t.id);
+    setName(t.name);
+    setDue(t.dueDate ?? "");
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const submit = async () => {
+    if (!name.trim()) return;
+    if (editingId) {
+      await updateTask(editingId, name, due || null);
+      setEditingId(null);
+    } else {
+      await addTask(name, due || null);
+      setAdding(false);
+    }
+    setName("");
+    setDue("");
   };
 
   const countdown = (t: Task) => {
@@ -388,32 +410,39 @@ function TaskSection({ tasks, now }: { tasks: Task[]; now: Date }) {
     return `Faltan ${d} ${d === 1 ? "día" : "días"}`;
   };
 
+  const form = (
+    <div className="card" style={{ padding: 12, marginBottom: 10 }}>
+      <input
+        className="field"
+        placeholder="Nueva tarea"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        autoFocus
+      />
+      <div className="row gap8 mt8">
+        <input className="field" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+        {editingId && (
+          <button className="btn ghost" onClick={cancelEdit} style={{ padding: "0 14px" }}>
+            <IconClose size={16} />
+          </button>
+        )}
+        <button className="btn primary" onClick={submit} style={{ padding: "0 18px" }} disabled={!name.trim()}>
+          <IconCheck size={18} />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="row between mt24" style={{ marginBottom: 12 }}>
         <h2 className="h2">Tareas por hacer</h2>
-        <button className="chip" onClick={() => setAdding((v) => !v)}>
+        <button className="chip" onClick={startAdd}>
           <IconPlus size={14} /> Tarea
         </button>
       </div>
 
-      {adding && (
-        <div className="card" style={{ padding: 12, marginBottom: 10 }}>
-          <input
-            className="field"
-            placeholder="Nueva tarea"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
-          <div className="row gap8 mt8">
-            <input className="field" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-            <button className="btn primary" onClick={submit} style={{ padding: "0 18px" }}>
-              <IconCheck size={18} />
-            </button>
-          </div>
-        </div>
-      )}
+      {adding && form}
 
       <div className="stack" style={{ gap: 8 }}>
         {sorted.length === 0 && !adding && (
@@ -421,41 +450,52 @@ function TaskSection({ tasks, now }: { tasks: Task[]; now: Date }) {
             Sin tareas pendientes.
           </div>
         )}
-        {sorted.map((t) => (
-          <div
-            key={t.id}
-            className="card row gap12"
-            style={{ padding: "12px 14px", opacity: t.done ? 0.55 : 1 }}
-          >
-            <Checkbox done={t.done} onToggle={() => toggleTask(t)} size={26} />
-            <div className="grow" style={{ minWidth: 0 }}>
+        {sorted.map((t) =>
+          editingId === t.id ? (
+            <div key={t.id}>{form}</div>
+          ) : (
+            <div
+              key={t.id}
+              className="card row gap12"
+              style={{ padding: "12px 14px", opacity: t.done ? 0.55 : 1 }}
+            >
+              <Checkbox done={t.done} onToggle={() => toggleTask(t)} size={26} />
               <div
-                className="ellipsis"
-                style={{
-                  fontWeight: 600,
-                  fontSize: 14,
-                  textDecoration: t.done ? "line-through" : "none",
-                }}
+                className="grow"
+                style={{ minWidth: 0, cursor: "pointer" }}
+                onClick={() => startEdit(t)}
               >
-                {t.name}
-              </div>
-              {countdown(t) && (
                 <div
-                  className="dim"
+                  className="ellipsis"
                   style={{
-                    fontSize: 12,
-                    color: countdown(t) === "Fecha pasada" ? "var(--danger)" : undefined,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    textDecoration: t.done ? "line-through" : "none",
                   }}
                 >
-                  {countdown(t)}
+                  {t.name}
                 </div>
-              )}
+                {countdown(t) && (
+                  <div
+                    className="dim"
+                    style={{
+                      fontSize: 12,
+                      color: countdown(t) === "Fecha pasada" ? "var(--danger)" : undefined,
+                    }}
+                  >
+                    {countdown(t)}
+                  </div>
+                )}
+              </div>
+              <button className="btn ghost dim" style={{ padding: 6 }} onClick={() => startEdit(t)}>
+                <IconEdit size={15} />
+              </button>
+              <button className="btn ghost dim" style={{ padding: 6 }} onClick={() => deleteTask(t.id)}>
+                <IconClose size={16} />
+              </button>
             </div>
-            <button className="btn ghost dim" style={{ padding: 6 }} onClick={() => deleteTask(t.id)}>
-              <IconClose size={16} />
-            </button>
-          </div>
-        ))}
+          )
+        )}
       </div>
     </>
   );

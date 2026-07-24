@@ -5,9 +5,9 @@ import {
   subMonths,
   isSameMonth,
 } from "date-fns";
-import { db, uid, colorFor } from "./db";
+import { db, uid, colorFor, checkId } from "./db";
 import { dateKey } from "./logic";
-import type { Habit, Task } from "./types";
+import type { Habit, Task, ScheduleEntry } from "./types";
 
 /** Vibración háptica sutil (si el dispositivo la soporta). */
 export function haptic(ms = 12) {
@@ -18,21 +18,21 @@ export function haptic(ms = 12) {
   }
 }
 
-/** Alterna la marca de un hábito en una fecha (checkbox custom). Los comandos del Sheet se vuelven acciones reales. */
+/**
+ * Alterna la marca de un hábito en una fecha (checkbox custom).
+ * Usa un id determinístico (`checkId`) y `put` (upsert) en vez de leer-y-luego-escribir:
+ * dos toques rápidos sobre el mismo checkbox ya no pueden crear dos filas para el mismo
+ * hábito+fecha (el bug que dejaba un hábito atascado en "completado" para siempre).
+ */
 export async function toggleCheck(habitId: string, date: string) {
   haptic();
-  const existing = await db.checks.where({ habitId, date }).first();
-  if (existing) {
-    await db.checks.put({ ...existing, done: !existing.done });
-  } else {
-    await db.checks.add({ id: uid(), habitId, date, done: true });
-  }
+  const id = checkId(habitId, date);
+  const existing = await db.checks.get(id);
+  await db.checks.put({ id, habitId, date, done: !existing?.done });
 }
 
 export async function setCheck(habitId: string, date: string, done: boolean) {
-  const existing = await db.checks.where({ habitId, date }).first();
-  if (existing) await db.checks.put({ ...existing, done });
-  else await db.checks.add({ id: uid(), habitId, date, done });
+  await db.checks.put({ id: checkId(habitId, date), habitId, date, done });
 }
 
 // ——— Comando: agregar hábito ———
@@ -43,22 +43,54 @@ export async function addHabit(data: {
   days?: number[] | null;
 }) {
   const count = await db.habits.count();
+  const now = Date.now();
+  const frequency = Math.min(7, Math.max(1, data.frequency));
+  const days = data.days && data.days.length > 0 ? [...data.days].sort() : null;
   await db.habits.add({
     id: uid(),
     name: data.name.trim(),
     emoji: data.emoji || "✨",
-    frequency: Math.min(7, Math.max(1, data.frequency)),
-    days: data.days && data.days.length > 0 ? [...data.days].sort() : null,
+    frequency,
+    days,
+    // Primera entrada del historial: rige desde el día de creación, no desde
+    // el 1º del mes — así su meta mensual se prorratea justo desde que existe.
+    schedule: [{ since: dateKey(new Date(now)), frequency, days }],
     color: colorFor(count),
     order: count,
     active: true,
-    createdAt: Date.now(),
+    createdAt: now,
   });
 }
 
-// ——— Comando: editar hábito ———
+/**
+ * Edita un hábito. Si `patch` cambia frecuencia o días, se agrega una entrada nueva
+ * al historial de programación con fecha de hoy, sin tocar las entradas anteriores:
+ * así los meses ya cerrados conservan la meta que tenían en su momento, en vez de
+ * recalcularse con la configuración actual.
+ */
 export async function updateHabit(id: string, patch: Partial<Habit>) {
-  await db.habits.update(id, patch);
+  const scheduleChanged = "frequency" in patch || "days" in patch;
+  if (!scheduleChanged) {
+    await db.habits.update(id, patch);
+    return;
+  }
+  const existing = await db.habits.get(id);
+  if (!existing) return;
+  const frequency = patch.frequency ?? existing.frequency;
+  const days = patch.days !== undefined ? patch.days : existing.days ?? null;
+  const history: ScheduleEntry[] =
+    existing.schedule && existing.schedule.length > 0
+      ? existing.schedule
+      : [{ since: dateKey(new Date(existing.createdAt)), frequency: existing.frequency, days: existing.days ?? null }];
+  const today = dateKey(new Date());
+  const last = history[history.length - 1];
+  const sameAsLast = last.frequency === frequency && JSON.stringify(last.days) === JSON.stringify(days);
+  const nextHistory = sameAsLast
+    ? history
+    : last.since === today
+      ? [...history.slice(0, -1), { since: today, frequency, days }] // ya se editó hoy: reemplaza, no apila
+      : [...history, { since: today, frequency, days }];
+  await db.habits.update(id, { ...patch, schedule: nextHistory });
 }
 
 // ——— Comando: eliminar hábito específico ———
@@ -85,14 +117,13 @@ export async function clearMonth(month: Date) {
 }
 
 // ——— Comando: copiar datos del mes anterior ———
-// Upsert por (habitId, fecha): ejecutarlo dos veces NO duplica filas.
+// Upsert por id determinístico: ejecutarlo dos veces NO duplica filas.
 export async function copyPreviousMonth(month: Date) {
   const prev = subMonths(month, 1);
   const prevDays = eachDayOfInterval({ start: startOfMonth(prev), end: endOfMonth(prev) });
   const curDays = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const allRows = await db.checks.toArray();
   const prevSet = new Set(allRows.filter((r) => r.done).map((r) => `${r.habitId}|${r.date}`));
-  const existingId = new Map(allRows.map((r) => [`${r.habitId}|${r.date}`, r.id]));
   const habits = await db.habits.toArray();
   const upserts: Array<{ id: string; habitId: string; date: string; done: boolean }> = [];
   for (const h of habits) {
@@ -101,8 +132,7 @@ export async function copyPreviousMonth(month: Date) {
       if (!src) continue;
       if (prevSet.has(`${h.id}|${dateKey(src)}`)) {
         const date = dateKey(curDays[i]);
-        const id = existingId.get(`${h.id}|${date}`) ?? uid();
-        upserts.push({ id, habitId: h.id, date, done: true });
+        upserts.push({ id: checkId(h.id, date), habitId: h.id, date, done: true });
       }
     }
   }
@@ -122,6 +152,9 @@ export async function addTask(name: string, dueDate: string | null) {
 }
 export async function toggleTask(task: Task) {
   await db.tasks.update(task.id, { done: !task.done });
+}
+export async function updateTask(id: string, name: string, dueDate: string | null) {
+  await db.tasks.update(id, { name: name.trim(), dueDate });
 }
 export async function deleteTask(id: string) {
   await db.tasks.delete(id);

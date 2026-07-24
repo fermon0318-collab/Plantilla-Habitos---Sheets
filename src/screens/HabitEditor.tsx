@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { BottomSheet } from "../ui/Sheet";
 import { addHabit, updateHabit, deleteHabit, haptic } from "../domain/actions";
+import { db } from "../domain/db";
 import type { Habit } from "../domain/types";
 import { IconTrash } from "../ui/icons";
 import { useUI } from "../ui/uiContext";
@@ -21,6 +23,13 @@ export function HabitEditor({ open, onClose, editing }: Props) {
   const [frequency, setFrequency] = useState(5);
   const [mode, setMode] = useState<"flex" | "days">("flex");
   const [days, setDays] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+  // Ref además del state: dos clics sincrónicos (doble-toque) llegan ANTES de que
+  // React re-renderice con `saving` en true, así que el state solo no alcanza para
+  // bloquear el segundo — el ref se lee/escribe al instante, sin esperar el render.
+  const savingRef = useRef(false);
+
+  const allHabits = useLiveQuery(() => db.habits.toArray(), []) ?? [];
 
   useEffect(() => {
     if (open) {
@@ -30,23 +39,36 @@ export function HabitEditor({ open, onClose, editing }: Props) {
       const hasDays = !!editing?.days && editing.days.length > 0;
       setMode(hasDays ? "days" : "flex");
       setDays(hasDays ? [...editing!.days!] : []);
+      savingRef.current = false;
+      setSaving(false);
     }
   }, [open, editing]);
 
-  const valid = name.trim().length > 0 && (mode === "flex" || days.length > 0);
+  const trimmed = name.trim();
+  const isDuplicate = allHabits.some(
+    (h) => h.id !== editing?.id && h.name.trim().toLowerCase() === trimmed.toLowerCase() && trimmed.length > 0
+  );
+  const valid = trimmed.length > 0 && (mode === "flex" || days.length > 0) && !isDuplicate;
 
   const save = async () => {
-    if (!valid) return;
+    if (!valid || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     haptic();
     const payload = {
-      name: name.trim(),
+      name: trimmed,
       emoji,
       frequency: mode === "days" ? days.length : frequency,
       days: mode === "days" ? [...days].sort() : null,
     };
-    if (editing) await updateHabit(editing.id, payload);
-    else await addHabit(payload);
-    onClose();
+    try {
+      if (editing) await updateHabit(editing.id, payload);
+      else await addHabit(payload);
+      onClose();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const remove = async () => {
@@ -107,6 +129,11 @@ export function HabitEditor({ open, onClose, editing }: Props) {
         placeholder="Ej. Meditar 10 minutos"
         autoFocus={!editing}
       />
+      {isDuplicate && (
+        <div style={{ color: "var(--danger)", fontSize: 12.5, margin: "6px 2px 0" }}>
+          Ya tenés un hábito con ese nombre.
+        </div>
+      )}
 
       <label className="lbl">Programación</label>
       <div className="seg">
@@ -172,8 +199,13 @@ export function HabitEditor({ open, onClose, editing }: Props) {
         </>
       )}
 
-      <button className="btn primary block mt24" onClick={save} disabled={!valid} style={{ opacity: valid ? 1 : 0.5 }}>
-        {editing ? "Guardar cambios" : "Crear hábito"}
+      <button
+        className="btn primary block mt24"
+        onClick={save}
+        disabled={!valid || saving}
+        style={{ opacity: valid && !saving ? 1 : 0.5 }}
+      >
+        {saving ? "Guardando…" : editing ? "Guardar cambios" : "Crear hábito"}
       </button>
     </BottomSheet>
   );

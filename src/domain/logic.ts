@@ -1,6 +1,5 @@
 import {
   differenceInCalendarDays,
-  getDaysInMonth,
   parseISO,
   format,
   startOfMonth,
@@ -9,7 +8,7 @@ import {
   getDay,
   subDays,
 } from "date-fns";
-import type { Habit, Check, HabitStats, Level, Achievement } from "./types";
+import type { Habit, Check, HabitStats, Level, Achievement, ScheduleEntry } from "./types";
 
 /** Formatea una fecha local a YYYY-MM-DD (nunca UTC, para respetar la hora del dispositivo). */
 export function dateKey(d: Date): string {
@@ -21,15 +20,51 @@ export function dow(d: Date): number {
   return (getDay(d) + 6) % 7;
 }
 
-/** ¿Este hábito toca hoy? Flexible = toca todos los días; programado = solo sus días. */
-export function isScheduled(habit: Habit, d: Date): boolean {
-  if (!habit.days || habit.days.length === 0) return true;
-  return habit.days.includes(dow(d));
+/**
+ * Historial de programación del hábito, ordenado por fecha. Si el hábito no tiene
+ * `schedule` guardado (datos de antes de esta funcionalidad), se sintetiza una única
+ * entrada con su frecuencia/días actuales desde su fecha de creación.
+ */
+function scheduleHistory(habit: Habit): ScheduleEntry[] {
+  if (habit.schedule && habit.schedule.length > 0) return habit.schedule;
+  return [
+    {
+      since: dateKey(new Date(habit.createdAt)),
+      frequency: habit.frequency,
+      days: habit.days ?? null,
+    },
+  ];
 }
 
-/** Meta semanal efectiva: días fijos si los hay, si no la frecuencia. */
-export function weeklyTarget(habit: Habit): number {
-  return habit.days && habit.days.length > 0 ? habit.days.length : habit.frequency;
+/**
+ * Programación vigente de un hábito en una fecha dada, o `null` si el hábito
+ * todavía no existía ese día. Esto es lo que permite que editar la frecuencia
+ * HOY no reescriba las estadísticas de meses ya cerrados, y que un hábito creado
+ * a mitad de mes no cuente como "incumplido" los días previos a su creación.
+ */
+export function scheduleAt(habit: Habit, d: Date): ScheduleEntry | null {
+  const k = dateKey(d);
+  let active: ScheduleEntry | null = null;
+  for (const entry of scheduleHistory(habit)) {
+    if (entry.since <= k) active = entry;
+    else break;
+  }
+  return active;
+}
+
+/** ¿Este hábito toca este día? Flexible = todos los días; programado = solo sus días. */
+export function isScheduled(habit: Habit, d: Date): boolean {
+  const sched = scheduleAt(habit, d);
+  if (!sched) return false; // aún no existía
+  if (!sched.days || sched.days.length === 0) return true;
+  return sched.days.includes(dow(d));
+}
+
+/** Meta semanal efectiva a partir de una fecha (por defecto, hoy): días fijos si los hay, si no la frecuencia. */
+export function weeklyTarget(habit: Habit, at: Date = new Date()): number {
+  const sched = scheduleAt(habit, at);
+  if (!sched) return 0;
+  return sched.days && sched.days.length > 0 ? sched.days.length : sched.frequency;
 }
 
 /** Umbrales de nivel del Sheet original (AE3): <0.2 / ≤0.39 / ≤0.59 / ≤0.84 / resto. */
@@ -62,16 +97,36 @@ export function progressToNextLevel(rate: number): number {
 }
 
 /**
- * Meta mensual de un hábito. Con días programados cuenta las ocurrencias reales
- * de esos días en el mes; flexible prorratea la frecuencia semanal.
+ * Meta de un hábito sobre un rango de días, sumando día por día según la
+ * programación vigente en cada uno:
+ * - Días anteriores a la creación del hábito no suman a la meta (no existía).
+ * - Un período que arranca a mitad de la vida del hábito prorratea su meta solo
+ *   desde que existe, en vez de exigir el período completo.
+ * - Si la frecuencia/días cambian dentro del rango, cada tramo usa SU propia meta;
+ *   los períodos ya cerrados no se recalculan con la programación actual.
+ * Devuelve 0 si el hábito no existió ni un solo día del rango.
  */
-export function monthlyTargetFor(habit: Habit, monthDate: Date): number {
-  if (habit.days && habit.days.length > 0) {
-    const all = eachDayOfInterval({ start: startOfMonth(monthDate), end: endOfMonth(monthDate) });
-    return Math.max(1, all.filter((d) => habit.days!.includes(dow(d))).length);
+export function periodTarget(habit: Habit, days: Date[]): number {
+  let target = 0;
+  let existed = false;
+  for (const d of days) {
+    const sched = scheduleAt(habit, d);
+    if (!sched) continue;
+    existed = true;
+    if (sched.days && sched.days.length > 0) {
+      if (sched.days.includes(dow(d))) target += 1;
+    } else {
+      target += sched.frequency / 7;
+    }
   }
-  const days = getDaysInMonth(monthDate);
-  return Math.max(1, Math.round((habit.frequency / 7) * days));
+  if (!existed) return 0;
+  return Math.max(1, Math.round(target));
+}
+
+/** Meta mensual de un hábito (ver {@link periodTarget}). */
+export function monthlyTargetFor(habit: Habit, monthDate: Date): number {
+  const days = eachDayOfInterval({ start: startOfMonth(monthDate), end: endOfMonth(monthDate) });
+  return periodTarget(habit, days);
 }
 
 function checkSet(checks: Check[]): Set<string> {

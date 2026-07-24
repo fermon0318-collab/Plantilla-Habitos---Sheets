@@ -4,6 +4,7 @@ import { HabitEditor } from "../screens/HabitEditor";
 import { Commands } from "../screens/Commands";
 import type { Habit } from "../domain/types";
 import type { ThemeId } from "../hooks/useTheme";
+import { useDismissable } from "../hooks/useDismissable";
 
 interface ConfirmOpts {
   title: string;
@@ -51,6 +52,8 @@ export function UIProvider({
     resolver.current = null;
     setConfirmState(null);
   };
+
+  useDismissable(!!confirmState, () => closeConfirm(false));
 
   const api: UICtx = {
     addHabit: () => {

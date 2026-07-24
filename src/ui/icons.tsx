@@ -14,6 +14,13 @@ const base = (size = 24) => ({
   strokeLinejoin: "round" as const,
 });
 
+export const IconEdit = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+  </svg>
+);
+
 export const IconToday = ({ size, className, style }: P) => (
   <svg {...base(size)} className={className} style={style}>
     <circle cx="12" cy="12" r="9" />

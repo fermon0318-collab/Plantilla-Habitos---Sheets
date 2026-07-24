@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { startOfWeek, addDays, addWeeks, isSameDay, format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Habit, Check } from "../domain/types";
-import { dateKey, toDoneSet, weeklyTarget, isScheduled } from "../domain/logic";
+import { dateKey, toDoneSet, periodTarget, isScheduled, scheduleAt } from "../domain/logic";
 import { toggleCheck } from "../domain/actions";
 import { cap, pct } from "../ui/format";
 import { IconChevron, IconCheck } from "../ui/icons";
@@ -22,11 +22,12 @@ export function Week({ habits, checks, now }: Props) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   // Cada hábito aporta como máximo su meta (no más), para que no aparezca 6/5.
+  // La meta se prorratea si el hábito no existía toda la semana (recién creado).
   const weekDone = habits.reduce((acc, h) => {
     const c = days.filter((d) => done.has(`${h.id}|${dateKey(d)}`)).length;
-    return acc + Math.min(c, weeklyTarget(h));
+    return acc + Math.min(c, periodTarget(h, days));
   }, 0);
-  const weekTarget = habits.reduce((a, h) => a + weeklyTarget(h), 0);
+  const weekTarget = habits.reduce((a, h) => a + periodTarget(h, days), 0);
   // Ritmo DE la semana seleccionada: hábitos completados por cada día.
   const rhythm = days.map((d) => habits.filter((h) => done.has(`${h.id}|${dateKey(d)}`)).length);
   const rhythmLabels = days.map((d) => cap(format(d, "EEE", { locale: es })));
@@ -106,8 +107,8 @@ export function Week({ habits, checks, now }: Props) {
       <div className="stack mt8" style={{ gap: 6 }}>
         {habits.map((h) => {
           const count = days.filter((d) => done.has(`${h.id}|${dateKey(d)}`)).length;
-          const target = weeklyTarget(h);
-          const met = count >= target;
+          const target = periodTarget(h, days);
+          const met = target > 0 && count >= target;
           const shown = Math.min(count, target); // no mostrar 6/5
           return (
             <div key={h.id} className="stack" style={{ gap: 4 }}>
@@ -125,6 +126,20 @@ export function Week({ habits, checks, now }: Props) {
                 {days.map((d) => {
                   const k = `${h.id}|${dateKey(d)}`;
                   const on = done.has(k);
+                  const existed = scheduleAt(h, d) !== null;
+                  // El hábito todavía no existía ese día: celda vacía, no clickeable
+                  // (antes se veía igual que "no programado hoy", como si hubiera
+                  // existido siempre e incumplido esos días).
+                  if (!existed) {
+                    return (
+                      <div key={k} style={{ display: "grid", placeItems: "center" }}>
+                        <div
+                          aria-hidden
+                          style={{ width: 30, height: 30, borderRadius: "50%", opacity: 0.12, background: "var(--border)" }}
+                        />
+                      </div>
+                    );
+                  }
                   const sched = isScheduled(h, d);
                   return (
                     <div key={k} style={{ display: "grid", placeItems: "center" }}>

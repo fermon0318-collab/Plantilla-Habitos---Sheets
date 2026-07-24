@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BottomSheet } from "../ui/Sheet";
-import { copyPreviousMonth, clearMonth, clearHabitMonth, haptic } from "../domain/actions";
+import { copyPreviousMonth, clearMonth, clearHabitMonth, reorderHabits, haptic } from "../domain/actions";
 import { fmtMonthYear, scheduleLabel } from "../ui/format";
 import type { Habit } from "../domain/types";
 import { THEMES, type ThemeId } from "../hooks/useTheme";
@@ -41,6 +41,15 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
     } finally {
       setBusy(false);
     }
+  };
+
+  const move = (index: number, dir: -1 | 1) => {
+    const j = index + dir;
+    if (j < 0 || j >= habits.length) return;
+    haptic(8);
+    const next = [...habits];
+    [next[index], next[j]] = [next[j], next[index]];
+    reorderHabits(next);
   };
 
   return (
@@ -147,24 +156,43 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
               </button>
             </div>
             <div className="stack" style={{ gap: 8 }}>
-              {habits.map((h) => (
-                <button
-                  key={h.id}
-                  className="card row between"
-                  style={{ padding: "12px 14px" }}
-                  onClick={() => onEdit(h)}
-                >
-                  <span className="row gap12 grow" style={{ minWidth: 0 }}>
+              {habits.map((h, i) => (
+                <div key={h.id} className="card row gap8" style={{ padding: "8px 8px 8px 14px", alignItems: "center" }}>
+                  <div className="stack" style={{ gap: 2 }}>
+                    <button
+                      className="btn ghost dim"
+                      style={{ padding: 3, opacity: i === 0 ? 0.3 : 1 }}
+                      disabled={i === 0}
+                      aria-label={`Subir ${h.name}`}
+                      onClick={() => move(i, -1)}
+                    >
+                      <IconChevron size={14} style={{ transform: "rotate(-90deg)" }} />
+                    </button>
+                    <button
+                      className="btn ghost dim"
+                      style={{ padding: 3, opacity: i === habits.length - 1 ? 0.3 : 1 }}
+                      disabled={i === habits.length - 1}
+                      aria-label={`Bajar ${h.name}`}
+                      onClick={() => move(i, 1)}
+                    >
+                      <IconChevron size={14} style={{ transform: "rotate(90deg)" }} />
+                    </button>
+                  </div>
+                  <button
+                    className="row gap12 grow"
+                    style={{ minWidth: 0, textAlign: "left" }}
+                    onClick={() => onEdit(h)}
+                  >
                     <span style={{ fontSize: 20 }}>{h.emoji}</span>
-                    <span className="grow ellipsis" style={{ textAlign: "left", fontWeight: 600 }}>
+                    <span className="grow ellipsis" style={{ fontWeight: 600 }}>
                       {h.name}
                     </span>
-                  </span>
+                  </button>
                   <span className="row gap8">
                     <span className="chip">{scheduleLabel(h)}</span>
                     <IconSettings size={16} className="dim" />
                   </span>
-                </button>
+                </div>
               ))}
             </div>
           </div>
