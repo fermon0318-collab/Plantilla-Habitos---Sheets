@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BottomSheet } from "../ui/Sheet";
+import { InstallGuide } from "./InstallGuide";
 import { copyPreviousMonth, clearMonth, clearHabitMonth, reorderHabits, haptic } from "../domain/actions";
 import { fmtMonthYear, scheduleLabel } from "../ui/format";
+import { useInstallPrompt } from "../hooks/useInstallPrompt";
 import type { Habit } from "../domain/types";
 import { THEMES, type ThemeId } from "../hooks/useTheme";
 import { useUI } from "../ui/uiContext";
@@ -16,6 +18,7 @@ import {
   IconTrash,
   IconPalette,
   IconCheck,
+  IconInstall,
 } from "../ui/icons";
 
 interface Props {
@@ -33,6 +36,24 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
   const ui = useUI();
   const [uncheckMode, setUncheckMode] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [installGuideOpen, setInstallGuideOpen] = useState(false);
+  const { platform, installed, canPrompt, promptInstall } = useInstallPrompt();
+
+  const handleInstall = async () => {
+    if (canPrompt) {
+      // El diálogo nativo del navegador es una capa aparte; Comandos puede seguir abierto.
+      haptic();
+      const outcome = await promptInstall();
+      if (outcome === "unavailable") {
+        onClose();
+        setInstallGuideOpen(true);
+      }
+    } else {
+      // Nuestra propia guía es otro BottomSheet: cerramos Comandos para que no se apilen.
+      onClose();
+      setInstallGuideOpen(true);
+    }
+  };
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -53,6 +74,7 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
   };
 
   return (
+    <>
     <BottomSheet open={open} onClose={onClose}>
       <div style={{ maxHeight: "72vh", overflowY: "auto", paddingBottom: 4 }}>
         <div className="row gap8" style={{ marginBottom: 12 }}>
@@ -62,6 +84,21 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
 
         {!uncheckMode ? (
           <div className="stack" style={{ gap: 10 }}>
+            {!installed && (
+              <CmdRow
+                icon={<IconInstall size={19} />}
+                title="Instalar app"
+                sub={
+                  canPrompt
+                    ? "Agregala a tu pantalla de inicio en un toque"
+                    : platform === "ios"
+                      ? "Ver pasos para iPhone (Safari)"
+                      : "Ver cómo instalarla en tu dispositivo"
+                }
+                onClick={handleInstall}
+              />
+            )}
+
             {/* ——— Apariencia ——— */}
             <div className="row gap8" style={{ margin: "2px 2px 0" }}>
               <IconPalette size={16} className="dim" />
@@ -235,6 +272,15 @@ export function Commands({ open, onClose, month, habits, theme, setTheme, onEdit
         )}
       </div>
     </BottomSheet>
+
+    {/* Hermana del BottomSheet de Comandos, no hija: si estuviera dentro, cerrar
+        Comandos (onClose) desmontaría también esta guía junto con todo lo demás. */}
+    <InstallGuide
+      open={installGuideOpen}
+      onClose={() => setInstallGuideOpen(false)}
+      initialPlatform={platform}
+    />
+    </>
   );
 }
 

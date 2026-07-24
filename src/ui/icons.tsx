@@ -121,6 +121,13 @@ export const IconDownload = ({ size, className, style }: P) => (
     <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
   </svg>
 );
+export const IconInstall = ({ size, className, style }: P) => (
+  <svg {...base(size)} className={className} style={style}>
+    <rect x="6" y="2" width="12" height="20" rx="2.5" />
+    <path d="M10 6h4" />
+    <path d="M12 11v5M9.5 13.5L12 16l2.5-2.5" />
+  </svg>
+);
 export const IconUndo = ({ size, className, style }: P) => (
   <svg {...base(size)} className={className} style={style}>
     <path d="M4 8h10a6 6 0 0 1 0 12H8" />
